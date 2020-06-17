@@ -7,7 +7,7 @@
 !_TAG_PROGRAM_NAME	Universal Ctags	/Derived from Exuberant Ctags/
 !_TAG_PROGRAM_URL	https://ctags.io/	/official site/
 !_TAG_PROGRAM_VERSION	0.0.0	/315c3351/
-ARPProxy	ARPProxy.java	/^	public ARPProxy(MacAddress mac){$/;"	m	class:ARPProxy
+ARPProxy	ARPProxy.java	/^	public ARPProxy(MacAddress mac, IPv4Address addr){$/;"	m	class:ARPProxy
 ARPProxy	ARPProxy.java	/^public class ARPProxy{$/;"	c
 GatewayForwarding	GatewayForwarding.java	/^public class GatewayForwarding{$/;"	c
 HostApplicationId	HostApplicationId.java	/^	public HostApplicationId(IPv4Address address,Integer port){$/;"	m	class:HostApplicationId
@@ -37,7 +37,7 @@ getPort	HostApplicationId.java	/^	public Integer getPort(){$/;"	m	class:HostAppl
 getPortFromPool	TransportLayerPortPool.java	/^	public Integer getPortFromPool() throws NoSuchElementException{$/;"	m	class:TransportLayerPortPool
 getServiceImpls	NAT.java	/^	public Map<Class<? extends IFloodlightService>, IFloodlightService> getServiceImpls() {$/;"	m	class:NAT
 globalIP	NAT.java	/^	private IPv4Address   globalIP;$/;"	f	class:NAT	file:
-handlePacketIn	ARPProxy.java	/^	public Command handlePacketIn(IOFSwitch sw,Ethernet eth,OFPort inPort){$/;"	m	class:ARPProxy
+handlePacketIn	ARPProxy.java	/^	public Command handlePacketIn(IOFSwitch sw,ARP arp,OFPort inPort){$/;"	m	class:ARPProxy
 hostMap	NAT.java	/^	private HostMap hostMap;$/;"	f	class:NAT	file:
 init	NAT.java	/^	public void init(FloodlightModuleContext context) throws FloodlightModuleException {$/;"	m	class:NAT
 isCallbackOrderingPostreq	NAT.java	/^	public boolean isCallbackOrderingPostreq(OFType type, String name) {$/;"	m	class:NAT
@@ -53,6 +53,7 @@ net.floodlightcontroller.sdn_nat	NAT.java	/^package net.floodlightcontroller.sdn
 net.floodlightcontroller.sdn_nat	TransportLayerPortPool.java	/^package net.floodlightcontroller.sdn_nat;$/;"	p
 port	HostApplicationId.java	/^	private Integer port;$/;"	f	class:HostApplicationId	file:
 portPool	NAT.java	/^	private TransportLayerPortPool portPool;$/;"	f	class:NAT	file:
+privateGatewayIP	ARPProxy.java	/^	private IPv4Address privateGatewayIP;$/;"	f	class:ARPProxy	file:
 proxy	NAT.java	/^	private ARPProxy proxy;$/;"	f	class:NAT	file:
 receive	NAT.java	/^	public Command receive(IOFSwitch sw, OFMessage msg, FloodlightContext cntx) {$/;"	m	class:NAT
 removeMapping	HostMap.java	/^	public void removeMapping(Integer port){$/;"	m	class:HostMap
