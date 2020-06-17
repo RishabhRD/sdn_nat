@@ -12,7 +12,9 @@ public class TransportLayerPortPool{
 		set.add(port);
 	}
 	public Integer getPortFromPool() throws NoSuchElementException{
-		return set.first();
+		Integer smallestPort = set.first();
+		set.remove(smallestPort);
+		return smallestPort;
 	}
 	public boolean isEmpty(){
 		return set.isEmpty();
