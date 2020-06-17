@@ -26,6 +26,7 @@ forwarding	NAT.java	/^	private GatewayForwarding forwarding;$/;"	f	class:NAT	fil
 gatewayAttachPoint	NAT.java	/^	private NodePortTuple gatewayAttachPoint;$/;"	f	class:NAT	file:
 gatewayMac	ARPProxy.java	/^	private MacAddress gatewayMac;$/;"	f	class:ARPProxy	file:
 gatewayMac	NAT.java	/^	private static final MacAddress gatewayMac = MacAddress.of("");$/;"	f	class:NAT	file:
+getGatewayIP	ARPProxy.java	/^	public IPv4Address getGatewayIP(){$/;"	m	class:ARPProxy
 getGatewayMac	ARPProxy.java	/^	public MacAddress getGatewayMac(){$/;"	m	class:ARPProxy
 getIP	HostApplicationId.java	/^	public IPv4Address getIP(){$/;"	m	class:HostApplicationId
 getMappedIP	HostMap.java	/^	public IPv4Address getMappedIP(Integer port){$/;"	m	class:HostMap

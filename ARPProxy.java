@@ -26,6 +26,9 @@ public class ARPProxy{
 	public MacAddress getGatewayMac(){
 		return gatewayMac;
 	}
+	public IPv4Address getGatewayIP(){
+		return privateGatewayIP;
+	}
 	public Command handlePacketIn(IOFSwitch sw,ARP arp,OFPort inPort){
 		if(!arp.getOpCode().equals(ARP.OP_REQUEST)){
 			return Command.CONTINUE;
