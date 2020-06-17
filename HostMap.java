@@ -3,6 +3,7 @@ package net.floodlightcontroller.sdn_nat;
 import java.util.HashMap;
 
 import org.projectfloodlight.openflow.types.IPv4Address;
+import org.projectfloodlight.openflow.types.MacAddress;
 
 public class HostMap{
 	private HashMap<Integer,HostApplicationId> map;
@@ -36,6 +37,10 @@ public class HostMap{
 	public IPv4Address getMappedIP(Integer port){
 		if(!map.containsKey(port)) return null;
 		return map.get(port).getIP();
+	}
+	public MacAddress getMappedMac(Integer port){
+		if(!map.containsKey(port)) return null;
+		return map.get(port).getMac();
 	}
 }
 
