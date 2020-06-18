@@ -12,6 +12,7 @@ import org.projectfloodlight.openflow.types.EthType;
 import org.projectfloodlight.openflow.types.IPv4Address;
 import org.projectfloodlight.openflow.types.IPv4AddressWithMask;
 import org.projectfloodlight.openflow.types.IpProtocol;
+import org.projectfloodlight.openflow.types.MacAddress;
 import org.projectfloodlight.openflow.types.OFBufferId;
 import org.projectfloodlight.openflow.types.OFPort;
 import org.projectfloodlight.openflow.types.TableId;
@@ -39,6 +40,7 @@ public class GatewayForwarding{
 //	private MacAddress gatewayMac;
 	private TransportLayerPortPool portPool;
 	private IOFSwitchService switchService;
+	private HostLocationMap locationMap;
 
 	public static final int APP_ID = 5;
 	public static final int APP_ID_BITS = 13;
@@ -52,6 +54,7 @@ public class GatewayForwarding{
 		this.gatewayAttachPoint = gatewayAttachPoint;
 		this.routingService = routingService;
 		this.switchService = switchService;
+		this.locationMap = new HostLocationMap();
 		hostMap = new HostMap();
 		portPool = new TransportLayerPortPool();
 		for(int i = 1;i<65535;i++){
@@ -60,51 +63,91 @@ public class GatewayForwarding{
 	}
 	public Command handlePacketIn(IOFSwitch sw,Ethernet ethernet, OFPort inPort){
 		IPv4 ip = (IPv4) ethernet.getPayload();
+		if(subnet.contains(ip.getSourceAddress())){
+			locationMap.addLocation(sw.getId(),ip.getSourceAddress(),inPort);
+		}
 		if(subnet.contains(ip.getSourceAddress()) && subnet.contains(ip.getDestinationAddress())){
 			return Command.CONTINUE;
 		}
 		if(!routingEnabled) return Command.STOP;
-		if(sw.getId().equals(gatewayAttachPoint.getNodeId())){
-			IOFSwitch firstSwitch = switchService.getSwitch(gatewayAttachPoint.getNodeId());
-			Integer newPort = portPool.getPortFromPool();
-			if(newPort == null) return Command.STOP;
-			ArrayList<OFAction> actionList = new ArrayList<>();
-			OFAction portChangeAction = sw.getOFFactory().actions().buildSetTpSrc().setTpPort(TransportPort.of(newPort)).build();
-			OFAction ipChangeAction = sw.getOFFactory().actions().buildSetNwSrc().setNwAddr(globalIp).build();
-			OFAction outputAction = sw.getOFFactory().actions().buildOutput().setPort(gatewayAttachPoint.getPortId()).build();
-			actionList.add(ipChangeAction);
-			actionList.add(portChangeAction);
-			actionList.add(outputAction);
-			OFPacketOut packetOut = firstSwitch.getOFFactory().buildPacketOut().setData(ethernet.serialize()).setInPort(OFPort.ANY).setBufferId(OFBufferId.NO_BUFFER).setActions(actionList).build();
-			firstSwitch.write(packetOut);
-			installGatewayRules(sw.getId(),ethernet,newPort);
-		}else{
-			Path path = routingService.getPath(sw.getId(),gatewayAttachPoint.getNodeId());
-			if(path.getPath().size() == 0){
-				return Command.STOP;
-			}
-			boolean install = true;
-			for(NodePortTuple tuple : path.getPath()){
-				if(!install){
-					install = true;
-					continue;
+		if(!subnet.contains(ip.getDestinationAddress())){
+			if(sw.getId().equals(gatewayAttachPoint.getNodeId())){
+				IOFSwitch firstSwitch = switchService.getSwitch(gatewayAttachPoint.getNodeId());
+				Integer newPort = portPool.getPortFromPool();
+				if(newPort == null) return Command.STOP;
+				ArrayList<OFAction> actionList = new ArrayList<>();
+				OFAction portChangeAction = sw.getOFFactory().actions().buildSetTpSrc().setTpPort(TransportPort.of(newPort)).build();
+				OFAction ipChangeAction = sw.getOFFactory().actions().buildSetNwSrc().setNwAddr(globalIp).build();
+				OFAction outputAction = sw.getOFFactory().actions().buildOutput().setPort(gatewayAttachPoint.getPortId()).build();
+				actionList.add(ipChangeAction);
+				actionList.add(portChangeAction);
+				actionList.add(outputAction);
+				OFPacketOut packetOut = firstSwitch.getOFFactory().buildPacketOut().setData(ethernet.serialize()).setInPort(OFPort.ANY).setBufferId(OFBufferId.NO_BUFFER).setActions(actionList).build();
+				firstSwitch.write(packetOut);
+				installGatewayRules(sw.getId(),ethernet,newPort);
+			}else{
+				Path path = routingService.getPath(sw.getId(),gatewayAttachPoint.getNodeId());
+				if(path.getPath().size() == 0){
+					return Command.STOP;
 				}
-				IOFSwitch currentSwitch = switchService.getSwitch(tuple.getNodeId());
-				Match match = currentSwitch.getOFFactory().buildMatch().setExact(MatchField.ETH_TYPE,EthType.IPv4).setExact(MatchField.IPV4_DST,ip.getDestinationAddress()).build();
+				boolean install = true;
+				for(NodePortTuple tuple : path.getPath()){
+					if(!install){
+						install = true;
+						continue;
+					}
+					IOFSwitch currentSwitch = switchService.getSwitch(tuple.getNodeId());
+					Match match = currentSwitch.getOFFactory().buildMatch().setExact(MatchField.ETH_TYPE,EthType.IPv4).setExact(MatchField.IPV4_DST,ip.getDestinationAddress()).build();
+					ArrayList<OFAction> actions = new ArrayList<>();
+					OFAction outputAction = currentSwitch.getOFFactory().actions().buildOutput().setPort(tuple.getPortId()).build();
+					actions.add(outputAction);
+					OFFlowAdd flowAdd  = currentSwitch.getOFFactory().buildFlowAdd().setCookie(U64.of(COOKIE)).setMatch(match).setActions(actions).setPriority(30).setIdleTimeout(10).setHardTimeout(10).setTableId(TableId.of(0)).build();
+					currentSwitch.write(flowAdd);
+				}
+				NodePortTuple tuple = path.getPath().get(0);
+				IOFSwitch firstSwitch = switchService.getSwitch(tuple.getNodeId());
 				ArrayList<OFAction> actions = new ArrayList<>();
-				OFAction outputAction = currentSwitch.getOFFactory().actions().buildOutput().setPort(tuple.getPortId()).build();
+				OFAction outputAction = firstSwitch.getOFFactory().actions().buildOutput().setPort(tuple.getPortId()).setMaxLen(Integer.MAX_VALUE).build();
 				actions.add(outputAction);
-				OFFlowAdd flowAdd  = currentSwitch.getOFFactory().buildFlowAdd().setCookie(U64.of(COOKIE)).setMatch(match).setActions(actions).setPriority(30).setIdleTimeout(10).setHardTimeout(10).setTableId(TableId.of(0)).build();
-				currentSwitch.write(flowAdd);
+				OFPacketOut packetOut = firstSwitch.getOFFactory().buildPacketOut().setData(ethernet.serialize()).setInPort(OFPort.ANY).setBufferId(OFBufferId.NO_BUFFER).setActions(actions).build();
+				sw.write(packetOut);
+				installGatewayRules(gatewayAttachPoint.getNodeId(),ethernet);
 			}
-			NodePortTuple tuple = path.getPath().get(0);
-			IOFSwitch firstSwitch = switchService.getSwitch(tuple.getNodeId());
-			ArrayList<OFAction> actions = new ArrayList<>();
-			OFAction outputAction = firstSwitch.getOFFactory().actions().buildOutput().setPort(tuple.getPortId()).setMaxLen(Integer.MAX_VALUE).build();
-			actions.add(outputAction);
-			OFPacketOut packetOut = firstSwitch.getOFFactory().buildPacketOut().setData(ethernet.serialize()).setInPort(OFPort.ANY).setBufferId(OFBufferId.NO_BUFFER).setActions(actions).build();
-			sw.write(packetOut);
-			installGatewayRules(gatewayAttachPoint.getNodeId(),ethernet);
+		}else{
+			if(sw.getId().equals(gatewayAttachPoint.getNodeId())){
+				installReverseGatewayRules(ethernet,sw);
+				TransportPort newPort = null;
+				if(ip.getProtocol().equals(IpProtocol.UDP)){
+					UDP udp = (UDP) ip.getPayload();
+					newPort = udp.getDestinationPort();
+				}else if(ip.getProtocol().equals(IpProtocol.TCP)){
+					TCP tcp = (TCP) ip.getPayload();
+					newPort = tcp.getDestinationPort();
+				}else{
+					return Command.CONTINUE;
+				}
+				Integer actualPort = hostMap.getMappedPort(newPort.getPort());
+				if(actualPort == null) return Command.STOP;
+				IPv4Address destinationIP = hostMap.getMappedIP(newPort.getPort());
+				MacAddress destinationMac = hostMap.getMappedMac(newPort.getPort());
+				ethernet.setDestinationMACAddress(destinationMac);
+				ip.setDestinationAddress(destinationIP);
+				if(ip.getProtocol().equals(IpProtocol.UDP)){
+					UDP udp = (UDP) ip.getPayload();
+					udp.setDestinationPort(TransportPort.of(actualPort));
+				}else if(ip.getProtocol().equals(IpProtocol.TCP)){
+					TCP tcp = (TCP) ip.getPayload();
+					tcp.setDestinationPort(actualPort);
+				}
+				OFPort destinationPort = locationMap.getLocation(sw.getId(),destinationIP);
+				if(destinationPort == null) return Command.STOP;
+				ArrayList<OFAction> actionList = new ArrayList<>();
+				OFAction outputAction = sw.getOFFactory().actions().buildOutput().setPort(destinationPort).build();
+				actionList.add(outputAction);
+				OFPacketOut packetOut = sw.getOFFactory().buildPacketOut().setData(ethernet.serialize()).setInPort(OFPort.ANY).setActions(actionList).setBufferId(OFBufferId.NO_BUFFER).build();
+				sw.write(packetOut);
+			}else{
+			}
 		}
 		return Command.STOP;
 		
