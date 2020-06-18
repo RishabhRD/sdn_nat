@@ -47,4 +47,13 @@ public class HostLocationMap{
 		if(internalMap == null) return false;
 		return internalMap.containsKey(addr);
 	}
+	public void removeSwitch(DatapathId id){
+		if(locationMap.containsKey(id)) 
+			locationMap.remove(id);
+	}
+	public OFPort getLocation(DatapathId dpid,IPv4Address addr){
+		HashMap<IPv4Address,OFPort> internalMap = locationMap.get(dpid);
+		if(internalMap == null) return null;
+		return internalMap.get(addr);
+	}
 }
