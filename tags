@@ -13,7 +13,7 @@ APP_ID_SHIFT	GatewayForwarding.java	/^	public static final int APP_ID_SHIFT = 64
 ARPProxy	ARPProxy.java	/^	public ARPProxy(MacAddress mac, IPv4Address addr){$/;"	m	class:ARPProxy
 ARPProxy	ARPProxy.java	/^public class ARPProxy{$/;"	c
 COOKIE	GatewayForwarding.java	/^	public static final long COOKIE = (long) (APP_ID & ((1 << APP_ID_BITS) - 1)) << APP_ID_SHIFT;$/;"	f	class:GatewayForwarding
-GatewayForwarding	GatewayForwarding.java	/^	public GatewayForwarding(IPv4Address globalIp,MacAddress gatewayMac,IPv4AddressWithMask subnet,/;"	m	class:GatewayForwarding
+GatewayForwarding	GatewayForwarding.java	/^	public GatewayForwarding(IPv4Address globalIp,\/*MacAddress gatewayMac,*\/IPv4AddressWithMask s/;"	m	class:GatewayForwarding
 GatewayForwarding	GatewayForwarding.java	/^public class GatewayForwarding{$/;"	c
 HostApplicationId	HostApplicationId.java	/^	public HostApplicationId(IPv4Address address,MacAddress mac,Integer port){$/;"	m	class:HostApplicationId
 HostApplicationId	HostApplicationId.java	/^public class HostApplicationId{$/;"	c
@@ -31,7 +31,6 @@ forwarding	NAT.java	/^	private GatewayForwarding forwarding;$/;"	f	class:NAT	fil
 gatewayAttachPoint	GatewayForwarding.java	/^	private NodePortTuple gatewayAttachPoint;$/;"	f	class:GatewayForwarding	file:
 gatewayAttachPoint	NAT.java	/^	private NodePortTuple gatewayAttachPoint;$/;"	f	class:NAT	file:
 gatewayMac	ARPProxy.java	/^	private MacAddress gatewayMac;$/;"	f	class:ARPProxy	file:
-gatewayMac	GatewayForwarding.java	/^	private MacAddress gatewayMac;$/;"	f	class:GatewayForwarding	file:
 gatewayMac	NAT.java	/^	private static final MacAddress gatewayMac = MacAddress.of("");$/;"	f	class:NAT	file:
 getGatewayIP	ARPProxy.java	/^	public IPv4Address getGatewayIP(){$/;"	m	class:ARPProxy
 getGatewayMac	ARPProxy.java	/^	public MacAddress getGatewayMac(){$/;"	m	class:ARPProxy
@@ -54,6 +53,7 @@ hostMap	GatewayForwarding.java	/^	private HostMap hostMap;$/;"	f	class:GatewayFo
 hostMap	NAT.java	/^	private HostMap hostMap;$/;"	f	class:NAT	file:
 init	NAT.java	/^	public void init(FloodlightModuleContext context) throws FloodlightModuleException {$/;"	m	class:NAT
 installGatewayRules	GatewayForwarding.java	/^	private boolean installGatewayRules(DatapathId id,Ethernet ethernet){$/;"	m	class:GatewayForwarding	file:
+installGatewayRules	GatewayForwarding.java	/^	private boolean installGatewayRules(DatapathId id,Ethernet ethernet,Integer newPort){$/;"	m	class:GatewayForwarding	file:
 isCallbackOrderingPostreq	NAT.java	/^	public boolean isCallbackOrderingPostreq(OFType type, String name) {$/;"	m	class:NAT
 isCallbackOrderingPrereq	NAT.java	/^	public boolean isCallbackOrderingPrereq(OFType type, String name) {$/;"	m	class:NAT
 isEmpty	TransportLayerPortPool.java	/^	public boolean isEmpty(){$/;"	m	class:TransportLayerPortPool
