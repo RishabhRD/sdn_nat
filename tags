@@ -13,7 +13,7 @@ APP_ID_SHIFT	GatewayForwarding.java	/^	public static final int APP_ID_SHIFT = 64
 ARPProxy	ARPProxy.java	/^	public ARPProxy(MacAddress mac, IPv4Address addr){$/;"	m	class:ARPProxy
 ARPProxy	ARPProxy.java	/^public class ARPProxy{$/;"	c
 COOKIE	GatewayForwarding.java	/^	public static final long COOKIE = (long) (APP_ID & ((1 << APP_ID_BITS) - 1)) << APP_ID_SHIFT;$/;"	f	class:GatewayForwarding
-GatewayForwarding	GatewayForwarding.java	/^	public GatewayForwarding(IPv4Address gatewayIP,MacAddress gatewayMac,IPv4AddressWithMask subnet/;"	m	class:GatewayForwarding
+GatewayForwarding	GatewayForwarding.java	/^	public GatewayForwarding(IPv4Address globalIp,MacAddress gatewayMac,IPv4AddressWithMask subnet,/;"	m	class:GatewayForwarding
 GatewayForwarding	GatewayForwarding.java	/^public class GatewayForwarding{$/;"	c
 HostApplicationId	HostApplicationId.java	/^	public HostApplicationId(IPv4Address address,MacAddress mac,Integer port){$/;"	m	class:HostApplicationId
 HostApplicationId	HostApplicationId.java	/^public class HostApplicationId{$/;"	c
@@ -22,7 +22,7 @@ HostMap	HostMap.java	/^public class HostMap{$/;"	c
 NAT	NAT.java	/^public class NAT implements IFloodlightModule, IOFMessageListener{$/;"	c
 TransportLayerPortPool	TransportLayerPortPool.java	/^	public TransportLayerPortPool(){$/;"	m	class:TransportLayerPortPool
 TransportLayerPortPool	TransportLayerPortPool.java	/^public class TransportLayerPortPool{$/;"	c
-addMapping	HostMap.java	/^	public void addMapping(Integer port,IPv4Address ip,Integer transportPort){$/;"	m	class:HostMap
+addMapping	HostMap.java	/^	public void addMapping(Integer port,MacAddress addr,IPv4Address ip,Integer transportPort){$/;"	m	class:HostMap
 addPortToPool	TransportLayerPortPool.java	/^	public void addPortToPool(Integer port){$/;"	m	class:TransportLayerPortPool
 address	HostApplicationId.java	/^	private IPv4Address address;$/;"	f	class:HostApplicationId	file:
 dpidMap	NAT.java	/^	private HashSet<DatapathId> dpidMap;$/;"	f	class:NAT	file:
@@ -30,7 +30,6 @@ equals	HostApplicationId.java	/^	public boolean equals(Object ob){$/;"	m	class:H
 forwarding	NAT.java	/^	private GatewayForwarding forwarding;$/;"	f	class:NAT	file:
 gatewayAttachPoint	GatewayForwarding.java	/^	private NodePortTuple gatewayAttachPoint;$/;"	f	class:GatewayForwarding	file:
 gatewayAttachPoint	NAT.java	/^	private NodePortTuple gatewayAttachPoint;$/;"	f	class:NAT	file:
-gatewayIP	GatewayForwarding.java	/^	private IPv4Address gatewayIP;$/;"	f	class:GatewayForwarding	file:
 gatewayMac	ARPProxy.java	/^	private MacAddress gatewayMac;$/;"	f	class:ARPProxy	file:
 gatewayMac	GatewayForwarding.java	/^	private MacAddress gatewayMac;$/;"	f	class:GatewayForwarding	file:
 gatewayMac	NAT.java	/^	private static final MacAddress gatewayMac = MacAddress.of("");$/;"	f	class:NAT	file:
@@ -48,12 +47,13 @@ getPort	HostApplicationId.java	/^	public Integer getPort(){$/;"	m	class:HostAppl
 getPortFromPool	TransportLayerPortPool.java	/^	public Integer getPortFromPool() throws NoSuchElementException{$/;"	m	class:TransportLayerPortPool
 getServiceImpls	NAT.java	/^	public Map<Class<? extends IFloodlightService>, IFloodlightService> getServiceImpls() {$/;"	m	class:NAT
 globalIP	NAT.java	/^	private IPv4Address   globalIP;$/;"	f	class:NAT	file:
+globalIp	GatewayForwarding.java	/^	private IPv4Address globalIp;$/;"	f	class:GatewayForwarding	file:
 handlePacketIn	ARPProxy.java	/^	public Command handlePacketIn(IOFSwitch sw,ARP arp,OFPort inPort){$/;"	m	class:ARPProxy
 handlePacketIn	GatewayForwarding.java	/^	public Command handlePacketIn(IOFSwitch sw,Ethernet ethernet, OFPort inPort){$/;"	m	class:GatewayForwarding
 hostMap	GatewayForwarding.java	/^	private HostMap hostMap;$/;"	f	class:GatewayForwarding	file:
 hostMap	NAT.java	/^	private HostMap hostMap;$/;"	f	class:NAT	file:
 init	NAT.java	/^	public void init(FloodlightModuleContext context) throws FloodlightModuleException {$/;"	m	class:NAT
-installGatewayRules	GatewayForwarding.java	/^	private void installGatewayRules(DatapathId id,Ethernet ethernet){$/;"	m	class:GatewayForwarding	file:
+installGatewayRules	GatewayForwarding.java	/^	private boolean installGatewayRules(DatapathId id,Ethernet ethernet){$/;"	m	class:GatewayForwarding	file:
 isCallbackOrderingPostreq	NAT.java	/^	public boolean isCallbackOrderingPostreq(OFType type, String name) {$/;"	m	class:NAT
 isCallbackOrderingPrereq	NAT.java	/^	public boolean isCallbackOrderingPrereq(OFType type, String name) {$/;"	m	class:NAT
 isEmpty	TransportLayerPortPool.java	/^	public boolean isEmpty(){$/;"	m	class:TransportLayerPortPool

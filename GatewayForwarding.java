@@ -11,10 +11,12 @@ import org.projectfloodlight.openflow.types.DatapathId;
 import org.projectfloodlight.openflow.types.EthType;
 import org.projectfloodlight.openflow.types.IPv4Address;
 import org.projectfloodlight.openflow.types.IPv4AddressWithMask;
+import org.projectfloodlight.openflow.types.IpProtocol;
 import org.projectfloodlight.openflow.types.MacAddress;
 import org.projectfloodlight.openflow.types.OFBufferId;
 import org.projectfloodlight.openflow.types.OFPort;
 import org.projectfloodlight.openflow.types.TableId;
+import org.projectfloodlight.openflow.types.TransportPort;
 import org.projectfloodlight.openflow.types.U64;
 
 import net.floodlightcontroller.core.IListener.Command;
@@ -23,13 +25,15 @@ import net.floodlightcontroller.core.internal.IOFSwitchService;
 import net.floodlightcontroller.core.types.NodePortTuple;
 import net.floodlightcontroller.packet.Ethernet;
 import net.floodlightcontroller.packet.IPv4;
+import net.floodlightcontroller.packet.TCP;
+import net.floodlightcontroller.packet.UDP;
 import net.floodlightcontroller.routing.IRoutingService;
 import net.floodlightcontroller.routing.Path;
 
 public class GatewayForwarding{
 	private boolean routingEnabled = true;
 	private IRoutingService routingService;
-	private IPv4Address gatewayIP;
+	private IPv4Address globalIp;
 	private NodePortTuple gatewayAttachPoint;
 	private HostMap hostMap;
 	private IPv4AddressWithMask subnet;
@@ -42,8 +46,8 @@ public class GatewayForwarding{
 	public static final int APP_ID_SHIFT = 64 - APP_ID_BITS;
 	public static final long COOKIE = (long) (APP_ID & ((1 << APP_ID_BITS) - 1)) << APP_ID_SHIFT;
 
-	public GatewayForwarding(IPv4Address gatewayIP,MacAddress gatewayMac,IPv4AddressWithMask subnet,NodePortTuple gatewayAttachPoint,IRoutingService routingService,IOFSwitchService switchService) {
-		this.gatewayIP = gatewayIP;
+	public GatewayForwarding(IPv4Address globalIp,MacAddress gatewayMac,IPv4AddressWithMask subnet,NodePortTuple gatewayAttachPoint,IRoutingService routingService,IOFSwitchService switchService) {
+		this.globalIp = globalIp;
 		this.gatewayMac = gatewayMac;
 		this.subnet = subnet;
 		this.gatewayAttachPoint = gatewayAttachPoint;
@@ -102,7 +106,46 @@ public class GatewayForwarding{
 	public void setRoutingEnabled(boolean enabled){
 		this.routingEnabled = enabled;
 	}
-	private void installGatewayRules(DatapathId id,Ethernet ethernet){
-		
+	private boolean installGatewayRules(DatapathId id,Ethernet ethernet){
+		IOFSwitch sw = switchService.getSwitch(id);
+		IPv4 ip = (IPv4) ethernet.getPayload();
+		TransportPort port = null;
+		Match match = null;
+		if(ip.getProtocol().equals(IpProtocol.UDP)){
+			UDP udp = (UDP) ip.getPayload();
+			port = udp.getSourcePort();
+			match = sw.getOFFactory().buildMatch().setExact(MatchField.ETH_TYPE,EthType.IPv4).
+				setExact(MatchField.IPV4_SRC,ip.getSourceAddress()).
+				setExact(MatchField.IPV4_DST,ip.getDestinationAddress()).
+				setExact(MatchField.IP_PROTO,IpProtocol.UDP).
+				setExact(MatchField.UDP_SRC,udp.getSourcePort()).
+				setExact(MatchField.UDP_DST,udp.getDestinationPort()).build();
+		}else if(ip.getProtocol().equals(IpProtocol.TCP)){
+			TCP tcp = (TCP) ip.getPayload();
+			port = tcp.getSourcePort();
+			match = sw.getOFFactory().buildMatch().setExact(MatchField.ETH_TYPE,EthType.IPv4).
+				setExact(MatchField.IPV4_SRC,ip.getSourceAddress()).
+				setExact(MatchField.IPV4_DST,ip.getDestinationAddress()).
+				setExact(MatchField.IP_PROTO,IpProtocol.UDP).
+				setExact(MatchField.TCP_SRC,tcp.getSourcePort()).
+				setExact(MatchField.TCP_DST,tcp.getDestinationPort()).build();
+		}else{
+			return false;
+		}
+		Integer newPort = portPool.getPortFromPool();
+		if(newPort == null) return false;
+		hostMap.addMapping(newPort,ethernet.getSourceMACAddress(),ip.getSourceAddress(),port.getPort());
+		ArrayList<OFAction> actionList = new ArrayList<>();
+		OFAction portChangeAction = sw.getOFFactory().actions().buildSetTpSrc().setTpPort(TransportPort.of(newPort)).build();
+		OFAction ipChangeAction = sw.getOFFactory().actions().buildSetNwSrc().setNwAddr(globalIp).build();
+		OFAction macChangeAction = sw.getOFFactory().actions().buildSetDlDst().setDlAddr(gatewayMac).build();
+		OFAction outputAction = sw.getOFFactory().actions().buildOutput().setPort(gatewayAttachPoint.getPortId()).build();
+		actionList.add(macChangeAction);
+		actionList.add(ipChangeAction);
+		actionList.add(portChangeAction);
+		actionList.add(outputAction);
+		OFFlowAdd flowAdd = sw.getOFFactory().buildFlowAdd().setCookie(U64.of(COOKIE)).setMatch(match).setPriority(30).setIdleTimeout(5).setTableId(TableId.of(0)).setActions(actionList).build();
+		sw.write(flowAdd);
+		return true;
 	}
 }
