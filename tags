@@ -15,7 +15,7 @@ ARPProxy	ARPProxy.java	/^public class ARPProxy{$/;"	c
 COOKIE	GatewayForwarding.java	/^	public static final long COOKIE = (long) (APP_ID & ((1 << APP_ID_BITS) - 1)) << APP_ID_SHIFT;$/;"	f	class:GatewayForwarding
 GatewayForwarding	GatewayForwarding.java	/^	public GatewayForwarding(IPv4Address gatewayIP,MacAddress gatewayMac,IPv4AddressWithMask subnet/;"	m	class:GatewayForwarding
 GatewayForwarding	GatewayForwarding.java	/^public class GatewayForwarding{$/;"	c
-HostApplicationId	HostApplicationId.java	/^	public HostApplicationId(IPv4Address address,Integer port){$/;"	m	class:HostApplicationId
+HostApplicationId	HostApplicationId.java	/^	public HostApplicationId(IPv4Address address,MacAddress mac,Integer port){$/;"	m	class:HostApplicationId
 HostApplicationId	HostApplicationId.java	/^public class HostApplicationId{$/;"	c
 HostMap	HostMap.java	/^	public HostMap(){$/;"	m	class:HostMap
 HostMap	HostMap.java	/^public class HostMap{$/;"	c

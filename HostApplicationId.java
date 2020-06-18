@@ -7,9 +7,10 @@ public class HostApplicationId{
 	private IPv4Address address;
 	private Integer port;
 	private MacAddress mac;
-	public HostApplicationId(IPv4Address address,Integer port){
+	public HostApplicationId(IPv4Address address,MacAddress mac,Integer port){
 		this.address = address;
 		this.port = port;
+		this.mac = mac;
 	}
 	public void setIP(IPv4Address addr){
 		this.address = addr;
