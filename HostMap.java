@@ -12,8 +12,8 @@ public class HostMap{
 		map = new HashMap<>();
 	}
 
-	public void addMapping(Integer port,IPv4Address ip,Integer transportPort){
-		HostApplicationId id = new HostApplicationId(ip,transportPort);
+	public void addMapping(Integer port,MacAddress addr,IPv4Address ip,Integer transportPort){
+		HostApplicationId id = new HostApplicationId(ip,addr,transportPort);
 		map.put(port,id);
 	}
 
