@@ -115,7 +115,9 @@ public class GatewayForwarding{
 			}
 		}else{
 			if(sw.getId().equals(gatewayAttachPoint.getNodeId())){
-				installReverseGatewayRules(ethernet,sw);
+				if(!installReverseGatewayRules(ethernet,sw)){
+					return Command.STOP;
+				}
 				TransportPort newPort = null;
 				if(ip.getProtocol().equals(IpProtocol.UDP)){
 					UDP udp = (UDP) ip.getPayload();
@@ -147,6 +149,22 @@ public class GatewayForwarding{
 				OFPacketOut packetOut = sw.getOFFactory().buildPacketOut().setData(ethernet.serialize()).setInPort(OFPort.ANY).setActions(actionList).setBufferId(OFBufferId.NO_BUFFER).build();
 				sw.write(packetOut);
 			}else{
+				OFPort destinationPort = locationMap.getLocation(sw.getId(),ip.getDestinationAddress());
+				if(destinationPort == null) return Command.STOP;
+				ArrayList<OFAction> actionList = new ArrayList<>();
+				OFAction action = sw.getOFFactory().actions().buildOutput().setPort(destinationPort).build();
+				actionList.add(action);
+				OFPacketOut packetOut = sw.getOFFactory().buildPacketOut().setData(ethernet.serialize()).setInPort(OFPort.ANY).setBufferId(OFBufferId.NO_BUFFER).setActions(actionList).build();
+				sw.write(packetOut);
+				Match match = sw.getOFFactory().buildMatch().setExact(MatchField.ETH_TYPE,EthType.IPv4)
+						.setExact(MatchField.IPV4_DST,ip.getDestinationAddress()).build();
+				OFFlowAdd flowAdd = sw.getOFFactory().buildFlowAdd().setCookie(U64.of(COOKIE)).setTableId(TableId.of(1))
+					.setMatch(match)
+					.setPriority(30)
+					.setIdleTimeout(10)
+					.setActions(actionList)
+					.build();
+				sw.write(flowAdd);
 			}
 		}
 		return Command.STOP;
@@ -231,6 +249,58 @@ public class GatewayForwarding{
 		actionList.add(portChangeAction);
 		actionList.add(outputAction);
 		OFFlowAdd flowAdd = sw.getOFFactory().buildFlowAdd().setCookie(U64.of(COOKIE)).setMatch(match).setPriority(30).setIdleTimeout(5).setTableId(TableId.of(0)).setActions(actionList).build();
+		sw.write(flowAdd);
+		return true;
+	}
+	private boolean installReverseGatewayRules(Ethernet eth, IOFSwitch sw){
+		IPv4 ip = (IPv4) eth.getPayload();
+		OFPort destinationPort = locationMap.getLocation(sw.getId(),ip.getDestinationAddress());
+		if(destinationPort == null) return false;
+		Match match = null;
+		TransportPort srcPort = null;
+		if(ip.getProtocol().equals(IpProtocol.UDP)){
+			UDP udp = (UDP) ip.getPayload();
+			srcPort = udp.getSourcePort();
+			match = sw.getOFFactory().buildMatch().setExact(MatchField.ETH_TYPE,EthType.IPv4)
+				.setExact(MatchField.ETH_DST,eth.getDestinationMACAddress())
+				.setExact(MatchField.IPV4_SRC,ip.getSourceAddress())
+				.setExact(MatchField.IPV4_DST,ip.getDestinationAddress())
+				.setExact(MatchField.IP_PROTO,IpProtocol.UDP)
+				.setExact(MatchField.UDP_SRC,udp.getSourcePort())
+				.setExact(MatchField.UDP_DST,udp.getDestinationPort())
+				.build();
+		}else if(ip.getProtocol().equals(IpProtocol.TCP)){
+			TCP tcp = (TCP) ip.getPayload();
+			srcPort = tcp.getSourcePort();
+			match = sw.getOFFactory().buildMatch().setExact(MatchField.ETH_TYPE,EthType.IPv4)
+				.setExact(MatchField.ETH_DST,eth.getDestinationMACAddress())
+				.setExact(MatchField.IPV4_SRC,ip.getSourceAddress())
+				.setExact(MatchField.IPV4_DST,ip.getDestinationAddress())
+				.setExact(MatchField.IP_PROTO,IpProtocol.TCP)
+				.setExact(MatchField.TCP_SRC,tcp.getSourcePort())
+				.setExact(MatchField.TCP_DST,tcp.getDestinationPort())
+				.build();
+		}else{
+			return false;
+		}
+		MacAddress destinationMac = hostMap.getMappedMac(srcPort.getPort());
+		IPv4Address destinationIP = hostMap.getMappedIP(srcPort.getPort());
+		Integer destinationTransportPort = hostMap.getMappedPort(srcPort.getPort());
+		OFAction macChangeAction = sw.getOFFactory().actions().buildSetDlDst().setDlAddr(destinationMac).build();
+		OFAction ipChangeAction = sw.getOFFactory().actions().buildSetNwDst().setNwAddr(destinationIP).build();
+		OFAction portChangeAction = sw.getOFFactory().actions().buildSetTpDst().setTpPort(TransportPort.of(destinationTransportPort)).build();
+		OFAction outputAction = sw.getOFFactory().actions().buildOutput().setPort(destinationPort).build();
+		ArrayList<OFAction> actionList = new ArrayList<>();
+		actionList.add(macChangeAction);
+		actionList.add(ipChangeAction);
+		actionList.add(portChangeAction);
+		actionList.add(outputAction);
+		OFFlowAdd flowAdd = sw.getOFFactory().buildFlowAdd().setCookie(U64.of(COOKIE))
+			.setTableId(TableId.of(0))
+			.setIdleTimeout(10)
+			.setActions(actionList)
+			.setMatch(match)
+			.build();
 		sw.write(flowAdd);
 		return true;
 	}
