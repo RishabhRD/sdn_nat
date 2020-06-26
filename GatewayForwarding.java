@@ -7,6 +7,7 @@ import org.projectfloodlight.openflow.protocol.OFPacketOut;
 import org.projectfloodlight.openflow.protocol.action.OFAction;
 import org.projectfloodlight.openflow.protocol.match.Match;
 import org.projectfloodlight.openflow.protocol.match.MatchField;
+import org.projectfloodlight.openflow.protocol.oxm.OFOxms;
 import org.projectfloodlight.openflow.types.DatapathId;
 import org.projectfloodlight.openflow.types.EthType;
 import org.projectfloodlight.openflow.types.IPv4Address;
@@ -78,12 +79,18 @@ public class GatewayForwarding{
 				IOFSwitch firstSwitch = switchService.getSwitch(gatewayAttachPoint.getNodeId());
 				Integer newPort = portPool.getPortFromPool();
 				if(newPort == null) return Command.STOP;
+				OFOxms oxms = sw.getOFFactory().oxms();
 				ArrayList<OFAction> actionList = new ArrayList<>();
-				OFAction portChangeAction = sw.getOFFactory().actions().buildSetTpSrc().setTpPort(TransportPort.of(newPort)).build();
-				OFAction ipChangeAction = sw.getOFFactory().actions().buildSetNwSrc().setNwAddr(globalIp).build();
+				OFAction portChangeAction = null;
+				if(ip.getProtocol().equals(IpProtocol.UDP)){
+					portChangeAction = sw.getOFFactory().actions().buildSetField().setField(oxms.udpSrc(TransportPort.of(newPort))).build();
+				}else if(ip.getProtocol().equals(IpProtocol.TCP)){
+					portChangeAction = sw.getOFFactory().actions().buildSetField().setField(oxms.tcpSrc(TransportPort.of(newPort))).build();
+				}
+				OFAction ipChangeAction = sw.getOFFactory().actions().buildSetField().setField(oxms.ipv4Src(globalIp)).build();
 				OFAction outputAction = sw.getOFFactory().actions().buildOutput().setPort(gatewayAttachPoint.getPortId()).build();
-				OFAction destMacAction = sw.getOFFactory().actions().buildSetDlDst().setDlAddr(gatewayMac).build();
-				OFAction srcMacAction = sw.getOFFactory().actions().buildSetDlDst().setDlAddr(globalGatewayMac).build();
+				OFAction destMacAction = sw.getOFFactory().actions().buildSetField().setField(oxms.ethDst(globalGatewayMac)).build();
+				OFAction srcMacAction = sw.getOFFactory().actions().buildSetField().setField(oxms.ethSrc(gatewayMac)).build();
 				actionList.add(ipChangeAction);
 				actionList.add(portChangeAction);
 				actionList.add(destMacAction);
@@ -215,11 +222,17 @@ public class GatewayForwarding{
 		if(newPort == null) return false;
 		hostMap.addMapping(newPort,ethernet.getSourceMACAddress(),ip.getSourceAddress(),port.getPort());
 		ArrayList<OFAction> actionList = new ArrayList<>();
-		OFAction portChangeAction = sw.getOFFactory().actions().buildSetTpSrc().setTpPort(TransportPort.of(newPort)).build();
-		OFAction ipChangeAction = sw.getOFFactory().actions().buildSetNwSrc().setNwAddr(globalIp).build();
+		OFOxms oxms = sw.getOFFactory().oxms();
+		OFAction destMacAction = sw.getOFFactory().actions().buildSetField().setField(oxms.ethDst(globalGatewayMac)).build();
+		OFAction portChangeAction = null;
+		if(ip.getProtocol().equals(IpProtocol.TCP)){
+			portChangeAction = sw.getOFFactory().actions().buildSetField().setField(oxms.tcpSrc(TransportPort.of(newPort))).build();
+		}else if(ip.getProtocol().equals(IpProtocol.UDP)){
+			portChangeAction = sw.getOFFactory().actions().buildSetField().setField(oxms.udpSrc(TransportPort.of(newPort))).build();
+		}
+		OFAction ipChangeAction = sw.getOFFactory().actions().buildSetField().setField(oxms.ipv4Src(globalIp)).build();
 		OFAction outputAction = sw.getOFFactory().actions().buildOutput().setPort(gatewayAttachPoint.getPortId()).build();
-		OFAction destMacAction = sw.getOFFactory().actions().buildSetDlDst().setDlAddr(globalGatewayMac).build();
-		OFAction srcMacAction = sw.getOFFactory().actions().buildSetDlDst().setDlAddr(gatewayMac).build();
+		OFAction srcMacAction = sw.getOFFactory().actions().buildSetField().setField(oxms.ethSrc(gatewayMac)).build();
 		actionList.add(destMacAction);
 		actionList.add(srcMacAction);
 		actionList.add(ipChangeAction);
@@ -262,11 +275,17 @@ public class GatewayForwarding{
 		if(newPort == null) return false;
 		hostMap.addMapping(newPort,ethernet.getSourceMACAddress(),ip.getSourceAddress(),port.getPort());
 		ArrayList<OFAction> actionList = new ArrayList<>();
-		OFAction portChangeAction = sw.getOFFactory().actions().buildSetTpSrc().setTpPort(TransportPort.of(newPort)).build();
-		OFAction ipChangeAction = sw.getOFFactory().actions().buildSetNwSrc().setNwAddr(globalIp).build();
+		OFOxms oxms = sw.getOFFactory().oxms();
+		OFAction destMacAction = sw.getOFFactory().actions().buildSetField().setField(oxms.ethDst(globalGatewayMac)).build();
+		OFAction portChangeAction = null;
+		if(ip.getProtocol().equals(IpProtocol.TCP)){
+			portChangeAction = sw.getOFFactory().actions().buildSetField().setField(oxms.tcpSrc(TransportPort.of(newPort))).build();
+		}else if(ip.getProtocol().equals(IpProtocol.UDP)){
+			portChangeAction = sw.getOFFactory().actions().buildSetField().setField(oxms.udpSrc(TransportPort.of(newPort))).build();
+		}
+		OFAction ipChangeAction = sw.getOFFactory().actions().buildSetField().setField(oxms.ipv4Src(globalIp)).build();
+		OFAction srcMacAction = sw.getOFFactory().actions().buildSetField().setField(oxms.ethSrc(gatewayMac)).build();
 		OFAction outputAction = sw.getOFFactory().actions().buildOutput().setPort(gatewayAttachPoint.getPortId()).build();
-		OFAction destMacAction = sw.getOFFactory().actions().buildSetDlDst().setDlAddr(globalGatewayMac).build();
-		OFAction srcMacAction = sw.getOFFactory().actions().buildSetDlDst().setDlAddr(gatewayMac).build();
 		actionList.add(srcMacAction);
 		actionList.add(destMacAction);
 		actionList.add(ipChangeAction);
@@ -313,10 +332,16 @@ public class GatewayForwarding{
 		MacAddress srcMac = gatewayMac;
 		IPv4Address destinationIP = hostMap.getMappedIP(srcPort.getPort());
 		Integer destinationTransportPort = hostMap.getMappedPort(srcPort.getPort());
-		OFAction macChangeAction = sw.getOFFactory().actions().buildSetDlDst().setDlAddr(destinationMac).build();
-		OFAction srcMacChangeAction = sw.getOFFactory().actions().buildSetDlSrc().setDlAddr(srcMac).build();
-		OFAction ipChangeAction = sw.getOFFactory().actions().buildSetNwDst().setNwAddr(destinationIP).build();
-		OFAction portChangeAction = sw.getOFFactory().actions().buildSetTpDst().setTpPort(TransportPort.of(destinationTransportPort)).build();
+		OFOxms oxms = sw.getOFFactory().oxms();
+		OFAction macChangeAction = sw.getOFFactory().actions().buildSetField().setField(oxms.ethDst(destinationMac)).build();
+		OFAction srcMacChangeAction = sw.getOFFactory().actions().buildSetField().setField(oxms.ethSrc(srcMac)).build();
+		OFAction ipChangeAction = sw.getOFFactory().actions().buildSetField().setField(oxms.ipv4Dst(destinationIP)).build();
+		OFAction portChangeAction = null;
+		if(ip.getProtocol().equals(IpProtocol.TCP)){
+			portChangeAction = sw.getOFFactory().actions().buildSetField().setField(oxms.udpDst(TransportPort.of(destinationTransportPort))).build();
+		}else if(ip.getProtocol().equals(IpProtocol.UDP)){
+			portChangeAction = sw.getOFFactory().actions().buildSetField().setField(oxms.tcpDst(TransportPort.of(destinationTransportPort))).build();
+		}
 		OFAction outputAction = sw.getOFFactory().actions().buildOutput().setPort(destinationPort).build();
 		ArrayList<OFAction> actionList = new ArrayList<>();
 		actionList.add(macChangeAction);
