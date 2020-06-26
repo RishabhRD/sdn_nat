@@ -8,6 +8,7 @@ import org.projectfloodlight.openflow.protocol.OFPacketIn;
 import org.projectfloodlight.openflow.protocol.OFType;
 import org.projectfloodlight.openflow.protocol.OFVersion;
 import org.projectfloodlight.openflow.protocol.match.MatchField;
+import org.projectfloodlight.openflow.types.DatapathId;
 import org.projectfloodlight.openflow.types.EthType;
 import org.projectfloodlight.openflow.types.IPv4Address;
 import org.projectfloodlight.openflow.types.IPv4AddressWithMask;
@@ -60,9 +61,10 @@ public class NAT implements IFloodlightModule, IOFMessageListener{
 	@Override
 	public void init(FloodlightModuleContext context) throws FloodlightModuleException {
 		floodlightProviderService = context.getServiceImpl(IFloodlightProviderService.class);
+		gatewayAttachPoint = new NodePortTuple(DatapathId.of("0000b2823855c246"),OFPort.of(1));
 		gatewayIP = IPv4Address.of("10.0.0.1");
 		subnet = IPv4AddressWithMask.of("10.0.0.0/24");
-		globalIP = IPv4Address.of("192.168.43.107");
+		globalIP = IPv4Address.of("192.168.43.106");
 		globalGatewayMac = MacAddress.of("c8:3d:dc:e6:97:7a");
 		gatewayMac = MacAddress.of("3c:95:09:20:a1:67");
 		routingService = context.getServiceImpl(IRoutingService.class);
