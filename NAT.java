@@ -14,6 +14,8 @@ import org.projectfloodlight.openflow.types.IPv4Address;
 import org.projectfloodlight.openflow.types.IPv4AddressWithMask;
 import org.projectfloodlight.openflow.types.MacAddress;
 import org.projectfloodlight.openflow.types.OFPort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import net.floodlightcontroller.core.FloodlightContext;
 import net.floodlightcontroller.core.IFloodlightProviderService;
@@ -42,6 +44,7 @@ public class NAT implements IFloodlightModule, IOFMessageListener{
 	private MacAddress globalGatewayMac;
 	private IRoutingService routingService;
 	private IOFSwitchService switchService;
+	protected static Logger log = LoggerFactory.getLogger(NAT.class);
 
 	@Override
 	public Collection<Class<? extends IFloodlightService>> getModuleServices() {
@@ -69,7 +72,7 @@ public class NAT implements IFloodlightModule, IOFMessageListener{
 		gatewayMac = MacAddress.of("3c:95:09:20:a1:67");
 		routingService = context.getServiceImpl(IRoutingService.class);
 		switchService = context.getServiceImpl(IOFSwitchService.class);
-		proxy = new ARPProxy(gatewayMac,gatewayIP);
+		proxy = new ARPProxy(gatewayMac,gatewayIP,log);
 		forwarding = new GatewayForwarding(gatewayMac,globalGatewayMac,globalIP,subnet,gatewayAttachPoint,routingService,switchService);
 	}
 

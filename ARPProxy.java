@@ -10,6 +10,7 @@ import org.projectfloodlight.openflow.types.IPv4Address;
 import org.projectfloodlight.openflow.types.MacAddress;
 import org.projectfloodlight.openflow.types.OFBufferId;
 import org.projectfloodlight.openflow.types.OFPort;
+import org.slf4j.Logger;
 
 import net.floodlightcontroller.core.IListener.Command;
 import net.floodlightcontroller.core.IOFSwitch;
@@ -19,9 +20,11 @@ import net.floodlightcontroller.packet.Ethernet;
 public class ARPProxy{
 	private MacAddress gatewayMac;
 	private IPv4Address privateGatewayIP;
-	public ARPProxy(MacAddress mac, IPv4Address addr){
+	private Logger logger;
+	public ARPProxy(MacAddress mac, IPv4Address addr,Logger logger){
 		this.gatewayMac = mac;
 		this.privateGatewayIP = addr;
+		this.logger = logger;
 	}
 	public MacAddress getGatewayMac(){
 		return gatewayMac;
@@ -36,6 +39,7 @@ public class ARPProxy{
 		if(!arp.getTargetProtocolAddress().equals(privateGatewayIP)){
 			return Command.CONTINUE;
 		}
+		logger.info("HERE {}",arp.getTargetProtocolAddress());
 		Ethernet ethernet = new Ethernet();
 		ethernet.setSourceMACAddress(gatewayMac);
 		ethernet.setDestinationMACAddress(arp.getSenderHardwareAddress());
