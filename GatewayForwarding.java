@@ -19,6 +19,7 @@ import org.projectfloodlight.openflow.types.OFPort;
 import org.projectfloodlight.openflow.types.TableId;
 import org.projectfloodlight.openflow.types.TransportPort;
 import org.projectfloodlight.openflow.types.U64;
+import org.slf4j.Logger;
 
 import net.floodlightcontroller.core.IListener.Command;
 import net.floodlightcontroller.core.IOFSwitch;
@@ -43,13 +44,14 @@ public class GatewayForwarding{
 	private TransportLayerPortPool portPool;
 	private IOFSwitchService switchService;
 	private HostLocationMap locationMap;
+	private Logger log;
 
 	public static final int APP_ID = 5;
 	public static final int APP_ID_BITS = 13;
 	public static final int APP_ID_SHIFT = 64 - APP_ID_BITS;
 	public static final long COOKIE = (long) (APP_ID & ((1 << APP_ID_BITS) - 1)) << APP_ID_SHIFT;
 
-	public GatewayForwarding(MacAddress gatewayMac, MacAddress globalGatewayMac,IPv4Address globalIp,IPv4AddressWithMask subnet,NodePortTuple gatewayAttachPoint,IRoutingService routingService,IOFSwitchService switchService) {
+	public GatewayForwarding(MacAddress gatewayMac, MacAddress globalGatewayMac,IPv4Address globalIp,IPv4AddressWithMask subnet,NodePortTuple gatewayAttachPoint,IRoutingService routingService,IOFSwitchService switchService,Logger log) {
 		this.globalIp = globalIp;
 //		this.gatewayMac = gatewayMac;
 		this.subnet = subnet;
@@ -58,6 +60,7 @@ public class GatewayForwarding{
 		this.switchService = switchService;
 		this.locationMap = new HostLocationMap();
 		this.gatewayMac = gatewayMac;
+		this.log = log;
 		this.globalGatewayMac = globalGatewayMac;
 		hostMap = new HostMap();
 		portPool = new TransportLayerPortPool();
@@ -74,7 +77,7 @@ public class GatewayForwarding{
 			return Command.CONTINUE;
 		}
 		if(!routingEnabled) return Command.STOP;
-		if(!subnet.contains(ip.getDestinationAddress())){
+		if(subnet.contains(ip.getSourceAddress()) && !subnet.contains(ip.getDestinationAddress())){
 			if(sw.getId().equals(gatewayAttachPoint.getNodeId())){
 				IOFSwitch firstSwitch = switchService.getSwitch(gatewayAttachPoint.getNodeId());
 				Integer newPort = portPool.getPortFromPool();
@@ -107,6 +110,7 @@ public class GatewayForwarding{
 				boolean install = true;
 				for(NodePortTuple tuple : path.getPath()){
 					if(!install){
+						locationMap.addLocation(tuple.getNodeId(),ip.getSourceAddress(),tuple.getPortId());
 						install = true;
 						continue;
 					}
@@ -115,7 +119,7 @@ public class GatewayForwarding{
 					ArrayList<OFAction> actions = new ArrayList<>();
 					OFAction outputAction = currentSwitch.getOFFactory().actions().buildOutput().setPort(tuple.getPortId()).build();
 					actions.add(outputAction);
-					OFFlowAdd flowAdd  = currentSwitch.getOFFactory().buildFlowAdd().setCookie(U64.of(COOKIE)).setMatch(match).setActions(actions).setPriority(30).setIdleTimeout(10).setHardTimeout(10).setTableId(TableId.of(0)).build();
+					OFFlowAdd flowAdd  = currentSwitch.getOFFactory().buildFlowAdd().setCookie(U64.of(COOKIE)).setMatch(match).setActions(actions).setPriority(30).setIdleTimeout(120).setTableId(TableId.of(0)).build();
 					currentSwitch.write(flowAdd);
 				}
 				NodePortTuple tuple = path.getPath().get(0);
@@ -127,11 +131,12 @@ public class GatewayForwarding{
 				sw.write(packetOut);
 				installGatewayRules(gatewayAttachPoint.getNodeId(),ethernet);
 			}
-		}else{
+		}else if ((!subnet.contains(ip.getSourceAddress())) && ip.getDestinationAddress().equals(globalIp)){
 			if(sw.getId().equals(gatewayAttachPoint.getNodeId())){
 				if(!installReverseGatewayRules(ethernet,sw)){
 					return Command.STOP;
 				}
+				log.info("Installed rules");
 				TransportPort newPort = null;
 				if(ip.getProtocol().equals(IpProtocol.UDP)){
 					UDP udp = (UDP) ip.getPayload();
@@ -176,7 +181,7 @@ public class GatewayForwarding{
 				OFFlowAdd flowAdd = sw.getOFFactory().buildFlowAdd().setCookie(U64.of(COOKIE)).setTableId(TableId.of(1))
 					.setMatch(match)
 					.setPriority(30)
-					.setIdleTimeout(10)
+					.setIdleTimeout(120)
 					.setActions(actionList)
 					.build();
 				sw.write(flowAdd);
@@ -238,7 +243,7 @@ public class GatewayForwarding{
 		actionList.add(ipChangeAction);
 		actionList.add(portChangeAction);
 		actionList.add(outputAction);
-		OFFlowAdd flowAdd = sw.getOFFactory().buildFlowAdd().setCookie(U64.of(COOKIE)).setMatch(match).setPriority(30).setIdleTimeout(5).setTableId(TableId.of(0)).setActions(actionList).build();
+		OFFlowAdd flowAdd = sw.getOFFactory().buildFlowAdd().setCookie(U64.of(COOKIE)).setMatch(match).setPriority(30).setIdleTimeout(120).setTableId(TableId.of(0)).setActions(actionList).build();
 		sw.write(flowAdd);
 		return true;
 	}
@@ -291,19 +296,17 @@ public class GatewayForwarding{
 		actionList.add(ipChangeAction);
 		actionList.add(portChangeAction);
 		actionList.add(outputAction);
-		OFFlowAdd flowAdd = sw.getOFFactory().buildFlowAdd().setCookie(U64.of(COOKIE)).setMatch(match).setPriority(30).setIdleTimeout(5).setTableId(TableId.of(0)).setActions(actionList).build();
+		OFFlowAdd flowAdd = sw.getOFFactory().buildFlowAdd().setCookie(U64.of(COOKIE)).setMatch(match).setPriority(30).setIdleTimeout(120).setTableId(TableId.of(0)).setActions(actionList).build();
 		sw.write(flowAdd);
 		return true;
 	}
 	private boolean installReverseGatewayRules(Ethernet eth, IOFSwitch sw){
 		IPv4 ip = (IPv4) eth.getPayload();
-		OFPort destinationPort = locationMap.getLocation(sw.getId(),ip.getDestinationAddress());
-		if(destinationPort == null) return false;
 		Match match = null;
-		TransportPort srcPort = null;
+		TransportPort destPort = null;
 		if(ip.getProtocol().equals(IpProtocol.UDP)){
 			UDP udp = (UDP) ip.getPayload();
-			srcPort = udp.getSourcePort();
+			destPort = udp.getDestinationPort();
 			match = sw.getOFFactory().buildMatch().setExact(MatchField.ETH_TYPE,EthType.IPv4)
 				.setExact(MatchField.ETH_SRC,eth.getSourceMACAddress())
 				.setExact(MatchField.ETH_DST,eth.getDestinationMACAddress())
@@ -315,7 +318,7 @@ public class GatewayForwarding{
 				.build();
 		}else if(ip.getProtocol().equals(IpProtocol.TCP)){
 			TCP tcp = (TCP) ip.getPayload();
-			srcPort = tcp.getSourcePort();
+			destPort = tcp.getDestinationPort();
 			match = sw.getOFFactory().buildMatch().setExact(MatchField.ETH_TYPE,EthType.IPv4)
 				.setExact(MatchField.ETH_SRC,eth.getSourceMACAddress())
 				.setExact(MatchField.ETH_DST,eth.getDestinationMACAddress())
@@ -328,10 +331,15 @@ public class GatewayForwarding{
 		}else{
 			return false;
 		}
-		MacAddress destinationMac = hostMap.getMappedMac(srcPort.getPort());
+		MacAddress destinationMac = hostMap.getMappedMac(destPort.getPort());
 		MacAddress srcMac = gatewayMac;
-		IPv4Address destinationIP = hostMap.getMappedIP(srcPort.getPort());
-		Integer destinationTransportPort = hostMap.getMappedPort(srcPort.getPort());
+		IPv4Address destinationIP = hostMap.getMappedIP(destPort.getPort());
+		OFPort destinationPort = locationMap.getLocation(sw.getId(),destinationIP);
+		if(destinationPort == null){
+			log.info("STOPPING HERE");
+			return false;
+		}
+		Integer destinationTransportPort = hostMap.getMappedPort(destPort.getPort());
 		OFOxms oxms = sw.getOFFactory().oxms();
 		OFAction macChangeAction = sw.getOFFactory().actions().buildSetField().setField(oxms.ethDst(destinationMac)).build();
 		OFAction srcMacChangeAction = sw.getOFFactory().actions().buildSetField().setField(oxms.ethSrc(srcMac)).build();
@@ -351,7 +359,7 @@ public class GatewayForwarding{
 		actionList.add(outputAction);
 		OFFlowAdd flowAdd = sw.getOFFactory().buildFlowAdd().setCookie(U64.of(COOKIE))
 			.setTableId(TableId.of(0))
-			.setIdleTimeout(10)
+			.setIdleTimeout(120)
 			.setActions(actionList)
 			.setMatch(match)
 			.build();

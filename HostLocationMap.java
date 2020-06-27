@@ -16,9 +16,8 @@ public class HostLocationMap{
 		if(internalMap == null){
 			internalMap = new HashMap<>();
 			locationMap.put(dpid,internalMap);
-		}else{
-			if(internalMap.containsKey(addr)) return false;
 		}
+		if(internalMap.containsKey(addr)) return false;
 		internalMap.put(addr,port);
 		return true;
 	}
