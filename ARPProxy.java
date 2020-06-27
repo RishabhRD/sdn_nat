@@ -34,14 +34,11 @@ public class ARPProxy{
 	}
 	public Command handlePacketIn(IOFSwitch sw,ARP arp,OFPort inPort){
 		if(!arp.getOpCode().equals(ARP.OP_REQUEST)){
-			logger.info("REQ {}",arp.getTargetProtocolAddress());
 			return Command.CONTINUE;
 		}
 		if(!arp.getTargetProtocolAddress().equals(privateGatewayIP)){
-			logger.info("OTHER {}",arp.getTargetProtocolAddress());
 			return Command.CONTINUE;
 		}
-		logger.info("HERE {}",arp.getTargetProtocolAddress());
 		Ethernet ethernet = new Ethernet();
 		ethernet.setSourceMACAddress(gatewayMac);
 		ethernet.setDestinationMACAddress(arp.getSenderHardwareAddress());
