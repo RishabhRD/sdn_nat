@@ -346,9 +346,9 @@ public class GatewayForwarding{
 		OFAction ipChangeAction = sw.getOFFactory().actions().buildSetField().setField(oxms.ipv4Dst(destinationIP)).build();
 		OFAction portChangeAction = null;
 		if(ip.getProtocol().equals(IpProtocol.TCP)){
-			portChangeAction = sw.getOFFactory().actions().buildSetField().setField(oxms.udpDst(TransportPort.of(destinationTransportPort))).build();
-		}else if(ip.getProtocol().equals(IpProtocol.UDP)){
 			portChangeAction = sw.getOFFactory().actions().buildSetField().setField(oxms.tcpDst(TransportPort.of(destinationTransportPort))).build();
+		}else if(ip.getProtocol().equals(IpProtocol.UDP)){
+			portChangeAction = sw.getOFFactory().actions().buildSetField().setField(oxms.udpDst(TransportPort.of(destinationTransportPort))).build();
 		}
 		OFAction outputAction = sw.getOFFactory().actions().buildOutput().setPort(destinationPort).build();
 		ArrayList<OFAction> actionList = new ArrayList<>();
