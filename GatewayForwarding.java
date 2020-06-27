@@ -96,7 +96,7 @@ public class GatewayForwarding{
 				actionList.add(destMacAction);
 				actionList.add(srcMacAction);
 				actionList.add(outputAction);
-				OFPacketOut packetOut = firstSwitch.getOFFactory().buildPacketOut().setData(ethernet.serialize()).setBufferId(OFBufferId.NO_BUFFER).setActions(actionList).build();
+				OFPacketOut packetOut = firstSwitch.getOFFactory().buildPacketOut().setData(ethernet.serialize()).setBufferId(OFBufferId.NO_BUFFER).setInPort(OFPort.CONTROLLER).setActions(actionList).build();
 				firstSwitch.write(packetOut);
 				installGatewayRules(sw.getId(),ethernet,newPort);
 			}else{
@@ -123,7 +123,7 @@ public class GatewayForwarding{
 				ArrayList<OFAction> actions = new ArrayList<>();
 				OFAction outputAction = firstSwitch.getOFFactory().actions().buildOutput().setPort(tuple.getPortId()).setMaxLen(Integer.MAX_VALUE).build();
 				actions.add(outputAction);
-				OFPacketOut packetOut = firstSwitch.getOFFactory().buildPacketOut().setData(ethernet.serialize()).setBufferId(OFBufferId.NO_BUFFER).setActions(actions).build();
+				OFPacketOut packetOut = firstSwitch.getOFFactory().buildPacketOut().setData(ethernet.serialize()).setBufferId(OFBufferId.NO_BUFFER).setInPort(OFPort.CONTROLLER).setActions(actions).build();
 				sw.write(packetOut);
 				installGatewayRules(gatewayAttachPoint.getNodeId(),ethernet);
 			}
@@ -161,7 +161,7 @@ public class GatewayForwarding{
 				ArrayList<OFAction> actionList = new ArrayList<>();
 				OFAction outputAction = sw.getOFFactory().actions().buildOutput().setPort(destinationPort).build();
 				actionList.add(outputAction);
-				OFPacketOut packetOut = sw.getOFFactory().buildPacketOut().setData(ethernet.serialize()).setActions(actionList).setBufferId(OFBufferId.NO_BUFFER).build();
+				OFPacketOut packetOut = sw.getOFFactory().buildPacketOut().setData(ethernet.serialize()).setActions(actionList).setInPort(OFPort.CONTROLLER).setBufferId(OFBufferId.NO_BUFFER).build();
 				sw.write(packetOut);
 			}else{
 				OFPort destinationPort = locationMap.getLocation(sw.getId(),ip.getDestinationAddress());
@@ -169,7 +169,7 @@ public class GatewayForwarding{
 				ArrayList<OFAction> actionList = new ArrayList<>();
 				OFAction action = sw.getOFFactory().actions().buildOutput().setPort(destinationPort).build();
 				actionList.add(action);
-				OFPacketOut packetOut = sw.getOFFactory().buildPacketOut().setData(ethernet.serialize()).setBufferId(OFBufferId.NO_BUFFER).setActions(actionList).build();
+				OFPacketOut packetOut = sw.getOFFactory().buildPacketOut().setData(ethernet.serialize()).setBufferId(OFBufferId.NO_BUFFER).setInPort(OFPort.CONTROLLER).setActions(actionList).build();
 				sw.write(packetOut);
 				Match match = sw.getOFFactory().buildMatch().setExact(MatchField.ETH_TYPE,EthType.IPv4)
 						.setExact(MatchField.IPV4_DST,ip.getDestinationAddress()).build();
