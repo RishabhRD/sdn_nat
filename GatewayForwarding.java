@@ -210,7 +210,7 @@ public class GatewayForwarding{
 			match = sw.getOFFactory().buildMatch().setExact(MatchField.ETH_TYPE,EthType.IPv4).
 				setExact(MatchField.IPV4_SRC,ip.getSourceAddress()).
 				setExact(MatchField.IPV4_DST,ip.getDestinationAddress()).
-				setExact(MatchField.IP_PROTO,IpProtocol.UDP).
+				setExact(MatchField.IP_PROTO,IpProtocol.TCP).
 				setExact(MatchField.TCP_SRC,tcp.getSourcePort()).
 				setExact(MatchField.TCP_DST,tcp.getDestinationPort()).
 				setExact(MatchField.ETH_SRC,ethernet.getSourceMACAddress()).
@@ -264,7 +264,7 @@ public class GatewayForwarding{
 			match = sw.getOFFactory().buildMatch().setExact(MatchField.ETH_TYPE,EthType.IPv4).
 				setExact(MatchField.IPV4_SRC,ip.getSourceAddress()).
 				setExact(MatchField.IPV4_DST,ip.getDestinationAddress()).
-				setExact(MatchField.IP_PROTO,IpProtocol.UDP).
+				setExact(MatchField.IP_PROTO,IpProtocol.TCP).
 				setExact(MatchField.TCP_SRC,tcp.getSourcePort()).
 				setExact(MatchField.TCP_DST,tcp.getDestinationPort()).
 				setExact(MatchField.ETH_SRC,ethernet.getSourceMACAddress()).
