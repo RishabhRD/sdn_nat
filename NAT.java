@@ -67,7 +67,7 @@ public class NAT implements IFloodlightModule, IOFMessageListener{
 		gatewayAttachPoint = new NodePortTuple(DatapathId.of(MacAddress.of("3c:95:09:20:a1:67")),OFPort.of(1));
 		gatewayIP = IPv4Address.of("10.0.0.1");
 		subnet = IPv4AddressWithMask.of("10.0.0.0/24");
-		globalIP = IPv4Address.of("192.168.43.107");
+		globalIP = IPv4Address.of("192.168.43.106");
 		globalGatewayMac = MacAddress.of("c8:3d:dc:e6:97:7a");
 		gatewayMac = MacAddress.of("3c:95:09:20:a1:67");
 		routingService = context.getServiceImpl(IRoutingService.class);

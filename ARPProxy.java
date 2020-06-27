@@ -34,9 +34,11 @@ public class ARPProxy{
 	}
 	public Command handlePacketIn(IOFSwitch sw,ARP arp,OFPort inPort){
 		if(!arp.getOpCode().equals(ARP.OP_REQUEST)){
+			logger.info("REQ {}",arp.getTargetProtocolAddress());
 			return Command.CONTINUE;
 		}
 		if(!arp.getTargetProtocolAddress().equals(privateGatewayIP)){
+			logger.info("OTHER {}",arp.getTargetProtocolAddress());
 			return Command.CONTINUE;
 		}
 		logger.info("HERE {}",arp.getTargetProtocolAddress());
@@ -59,9 +61,13 @@ public class ARPProxy{
 		ofp.setBufferId(OFBufferId.NO_BUFFER);
 		ofp.setData(ethernet.serialize());
 		List<OFAction> actions = new ArrayList<>();
-		actions.add(sw.getOFFactory().actions().buildOutput().setPort(inPort).setMaxLen(Integer.MAX_VALUE).build());
+		actions.add(sw.getOFFactory().actions().buildOutput()
+				.setPort(inPort).setMaxLen(0xffFFffFF).build());
 		ofp.setActions(actions);
-		sw.write(ofp.build());
+		ofp.setInPort(OFPort.CONTROLLER);
+		if(!sw.write(ofp.build())){
+			logger.info("OMG! switch writing failed");
+		}
 		return Command.STOP;
 	}
 }
