@@ -136,7 +136,6 @@ public class GatewayForwarding{
 				if(!installReverseGatewayRules(ethernet,sw)){
 					return Command.STOP;
 				}
-				log.info("Installed rules");
 				TransportPort newPort = null;
 				if(ip.getProtocol().equals(IpProtocol.UDP)){
 					UDP udp = (UDP) ip.getPayload();
@@ -335,11 +334,10 @@ public class GatewayForwarding{
 		MacAddress srcMac = gatewayMac;
 		IPv4Address destinationIP = hostMap.getMappedIP(destPort.getPort());
 		OFPort destinationPort = locationMap.getLocation(sw.getId(),destinationIP);
-		if(destinationPort == null){
-			log.info("STOPPING HERE");
+		Integer destinationTransportPort = hostMap.getMappedPort(destPort.getPort());
+		if(destinationTransportPort == null){
 			return false;
 		}
-		Integer destinationTransportPort = hostMap.getMappedPort(destPort.getPort());
 		OFOxms oxms = sw.getOFFactory().oxms();
 		OFAction macChangeAction = sw.getOFFactory().actions().buildSetField().setField(oxms.ethDst(destinationMac)).build();
 		OFAction srcMacChangeAction = sw.getOFFactory().actions().buildSetField().setField(oxms.ethSrc(srcMac)).build();

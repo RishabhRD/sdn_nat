@@ -72,7 +72,7 @@ public class NAT implements IFloodlightModule, IOFMessageListener{
 		gatewayMac = MacAddress.of("3c:95:09:20:a1:67");
 		routingService = context.getServiceImpl(IRoutingService.class);
 		switchService = context.getServiceImpl(IOFSwitchService.class);
-		proxy = new ARPProxy(gatewayMac,gatewayIP,log);
+		proxy = new ARPProxy(gatewayMac,gatewayIP);
 		forwarding = new GatewayForwarding(gatewayMac,globalGatewayMac,globalIP,subnet,gatewayAttachPoint,routingService,switchService,log);
 	}
 

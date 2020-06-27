@@ -10,7 +10,6 @@ import org.projectfloodlight.openflow.types.IPv4Address;
 import org.projectfloodlight.openflow.types.MacAddress;
 import org.projectfloodlight.openflow.types.OFBufferId;
 import org.projectfloodlight.openflow.types.OFPort;
-import org.slf4j.Logger;
 
 import net.floodlightcontroller.core.IListener.Command;
 import net.floodlightcontroller.core.IOFSwitch;
@@ -20,11 +19,9 @@ import net.floodlightcontroller.packet.Ethernet;
 public class ARPProxy{
 	private MacAddress gatewayMac;
 	private IPv4Address privateGatewayIP;
-	private Logger logger;
-	public ARPProxy(MacAddress mac, IPv4Address addr,Logger logger){
+	public ARPProxy(MacAddress mac, IPv4Address addr){
 		this.gatewayMac = mac;
 		this.privateGatewayIP = addr;
-		this.logger = logger;
 	}
 	public MacAddress getGatewayMac(){
 		return gatewayMac;
@@ -62,9 +59,7 @@ public class ARPProxy{
 				.setPort(inPort).setMaxLen(0xffFFffFF).build());
 		ofp.setActions(actions);
 		ofp.setInPort(OFPort.CONTROLLER);
-		if(!sw.write(ofp.build())){
-			logger.info("OMG! switch writing failed");
-		}
+		sw.write(ofp.build());
 		return Command.STOP;
 	}
 }
