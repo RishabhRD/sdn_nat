@@ -42,5 +42,8 @@ public class HostMap{
 		if(!map.containsKey(port)) return null;
 		return map.get(port).getMac();
 	}
+	public boolean portExists(Integer port){
+		return map.containsKey(port);
+	}
 }
 

@@ -32,10 +32,10 @@ public class NetworkProperty{
 		this.globalGatewayMac = globalGatewayMac;
 		this.ipv6Subnet = ipv6Subnet;
 	}
-	public IPv6AddressWithMask getIpv6Subnet() {
+	public IPv6AddressWithMask getIPv6Subnet() {
 		return ipv6Subnet;
 	}
-	public void setIpv6Subnet(IPv6AddressWithMask ipv6Subnet) {
+	public void setIPv6Subnet(IPv6AddressWithMask ipv6Subnet) {
 		this.ipv6Subnet = ipv6Subnet;
 	}
 	public IPv4Address getGlobalIPv4() {
