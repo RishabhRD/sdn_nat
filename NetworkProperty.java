@@ -9,6 +9,7 @@ import java.util.Properties;
 import org.projectfloodlight.openflow.types.IPv4Address;
 import org.projectfloodlight.openflow.types.IPv4AddressWithMask;
 import org.projectfloodlight.openflow.types.IPv6Address;
+import org.projectfloodlight.openflow.types.IPv6AddressWithMask;
 import org.projectfloodlight.openflow.types.MacAddress;
 
 public class NetworkProperty{
@@ -18,16 +19,24 @@ public class NetworkProperty{
 	private IPv4AddressWithMask ipv4Subnet;
 	//IPv6 related variables
 	private IPv6Address globalIPv6;
+	private IPv6AddressWithMask ipv6Subnet;
 	//MAC address related variables
 	private MacAddress gatewayMac;
 	private MacAddress globalGatewayMac;
-	public NetworkProperty(IPv4Address gatewayIPv4Address,IPv4Address globalIPv4, IPv4AddressWithMask ipv4Subnet, IPv6Address globalIPv6, MacAddress gatewayMac, MacAddress globalGatewayMac){
+	public NetworkProperty(MacAddress gatewayMac,MacAddress globalGatewayMac, IPv4Address gatewayIPv4Address,IPv4Address globalIPv4, IPv4AddressWithMask ipv4Subnet, IPv6Address globalIPv6, IPv6AddressWithMask ipv6Subnet  ){
 		this.gatewayIPv4Address = gatewayIPv4Address;
 		this.globalIPv4 = globalIPv4;
 		this.ipv4Subnet = ipv4Subnet;
 		this.globalIPv6 = globalIPv6;
 		this.gatewayMac = gatewayMac;
 		this.globalGatewayMac = globalGatewayMac;
+		this.ipv6Subnet = ipv6Subnet;
+	}
+	public IPv6AddressWithMask getIpv6Subnet() {
+		return ipv6Subnet;
+	}
+	public void setIpv6Subnet(IPv6AddressWithMask ipv6Subnet) {
+		this.ipv6Subnet = ipv6Subnet;
 	}
 	public IPv4Address getGlobalIPv4() {
 		return globalIPv4;
@@ -76,6 +85,7 @@ public class NetworkProperty{
 		String global_ipv4 = prop.getProperty("global_ipv4");
 		String ipv4_subnet = prop.getProperty("ipv4_subnet");
 		String global_ipv6 = prop.getProperty("global_ipv6");
+		String ipv6_subnet = prop.getProperty("ipv6_subnet");
 		String gateway_mac = prop.getProperty("gateway_mac");
 		String global_gateway_mac = prop.getProperty("global_gateway_mac");
 		if(gateway_ipv4 == null) 
@@ -86,17 +96,21 @@ public class NetworkProperty{
 			throw new InvalidParameterException("Property Not Found: ipv4_subnet");
 		if(global_ipv6 == null) 
 			throw new InvalidParameterException("Property Not Found: global_ipv6");
+		if(ipv6_subnet == null) 
+			throw new InvalidParameterException("Property Not Found: ipv6_subnet");
 		if(global_gateway_mac == null) 
 			throw new InvalidParameterException("Property Not Found: global_gateway_mac");
 		if(gateway_mac == null)
 			throw new InvalidParameterException("Property Not Found: gateway_mac");
 		NetworkProperty nwp = new NetworkProperty(
+				MacAddress.of(gateway_mac),
+				MacAddress.of(global_gateway_mac),
 				IPv4Address.of(gateway_ipv4),
 				IPv4Address.of(global_ipv4),
 				IPv4AddressWithMask.of(ipv4_subnet),
 				IPv6Address.of(global_ipv6),
-				MacAddress.of(gateway_mac),
-				MacAddress.of(global_gateway_mac));
+				IPv6AddressWithMask.of(ipv6_subnet)
+				);
 		return nwp;
 
 	}
