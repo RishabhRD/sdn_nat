@@ -13,8 +13,6 @@ import org.projectfloodlight.openflow.protocol.oxm.OFOxms;
 import org.projectfloodlight.openflow.types.DatapathId;
 import org.projectfloodlight.openflow.types.EthType;
 import org.projectfloodlight.openflow.types.IPv4Address;
-import org.projectfloodlight.openflow.types.IPv4AddressWithMask;
-import org.projectfloodlight.openflow.types.IPv6Address;
 import org.projectfloodlight.openflow.types.IpProtocol;
 import org.projectfloodlight.openflow.types.MacAddress;
 import org.projectfloodlight.openflow.types.OFBufferId;
@@ -40,11 +38,7 @@ public class GatewayForwarding{
 	private IRoutingService routingService;
 	private NodePortTuple gatewayAttachPoint;
 	private HostMap hostMap;
-	private IPv4AddressWithMask subnet;
-	private MacAddress gatewayMac;
-	private MacAddress globalGatewayMac;
-	private IPv4Address globalIpv4;
-	private IPv6Address globalIpv6;
+	private NetworkProperty nwp;
 	private TransportLayerPortPool portPool;
 	private IOFSwitchService switchService;
 	private HostLocationMap locationMap;
@@ -57,17 +51,13 @@ public class GatewayForwarding{
 	public static final int APP_ID_SHIFT = 64 - APP_ID_BITS;
 	public static final long COOKIE = (long) (APP_ID & ((1 << APP_ID_BITS) - 1)) << APP_ID_SHIFT;
 
-	public GatewayForwarding(MacAddress gatewayMac, MacAddress globalGatewayMac,IPv4Address globalIpv4,IPv4AddressWithMask subnet,IPv6Address globalIpv6,NodePortTuple gatewayAttachPoint,IRoutingService routingService,IOFSwitchService switchService,Logger log) {
-		this.globalIpv4 = globalIpv4;
-		this.globalIpv6 = globalIpv6;
-		this.subnet = subnet;
+	public GatewayForwarding(NetworkProperty nwp,NodePortTuple gatewayAttachPoint,IRoutingService routingService,IOFSwitchService switchService,Logger log) {
+		this.nwp = nwp;
 		this.gatewayAttachPoint = gatewayAttachPoint;
 		this.routingService = routingService;
 		this.switchService = switchService;
 		this.locationMap = new HostLocationMap();
-		this.gatewayMac = gatewayMac;
 		this.log = log;
-		this.globalGatewayMac = globalGatewayMac;
 		hostMap = new HostMap();
 		portPool = new TransportLayerPortPool();
 		for(int i = 1;i<=65535;i++){
@@ -76,14 +66,14 @@ public class GatewayForwarding{
 	}
 	public Command handlePacketIn(IOFSwitch sw,Ethernet ethernet, OFPort inPort){
 		IPv4 ip = (IPv4) ethernet.getPayload();
-		if(subnet.contains(ip.getSourceAddress())){
+		if(nwp.getIPv4Subnet().contains(ip.getSourceAddress())){
 			locationMap.addLocation(sw.getId(),ip.getSourceAddress(),inPort);
 		}
-		if(subnet.contains(ip.getSourceAddress()) && subnet.contains(ip.getDestinationAddress())){
+		if(nwp.getIPv4Subnet().contains(ip.getSourceAddress()) && nwp.getIPv4Subnet().contains(ip.getDestinationAddress())){
 			return Command.CONTINUE;
 		}
 		if(!routingEnabled) return Command.STOP;
-		if(subnet.contains(ip.getSourceAddress()) && !subnet.contains(ip.getDestinationAddress())){
+		if(nwp.getIPv4Subnet().contains(ip.getSourceAddress()) && !nwp.getIPv4Subnet().contains(ip.getDestinationAddress())){
 			if(sw.getId().equals(gatewayAttachPoint.getNodeId())){
 				IOFSwitch firstSwitch = switchService.getSwitch(gatewayAttachPoint.getNodeId());
 				Integer newPort = portPool.getPortFromPool();
@@ -96,10 +86,10 @@ public class GatewayForwarding{
 				}else if(ip.getProtocol().equals(IpProtocol.TCP)){
 					portChangeAction = sw.getOFFactory().actions().buildSetField().setField(oxms.tcpSrc(TransportPort.of(newPort))).build();
 				}
-				OFAction ipChangeAction = sw.getOFFactory().actions().buildSetField().setField(oxms.ipv4Src(globalIp)).build();
+				OFAction ipChangeAction = sw.getOFFactory().actions().buildSetField().setField(oxms.ipv4Src(nwp.getGlobalIPv4())).build();
 				OFAction outputAction = sw.getOFFactory().actions().buildOutput().setPort(gatewayAttachPoint.getPortId()).build();
-				OFAction destMacAction = sw.getOFFactory().actions().buildSetField().setField(oxms.ethDst(globalGatewayMac)).build();
-				OFAction srcMacAction = sw.getOFFactory().actions().buildSetField().setField(oxms.ethSrc(gatewayMac)).build();
+				OFAction destMacAction = sw.getOFFactory().actions().buildSetField().setField(oxms.ethDst(nwp.getGlobalGatewayMac())).build();
+				OFAction srcMacAction = sw.getOFFactory().actions().buildSetField().setField(oxms.ethSrc(nwp.getGatewayMac())).build();
 				actionList.add(ipChangeAction);
 				actionList.add(portChangeAction);
 				actionList.add(destMacAction);
@@ -137,7 +127,7 @@ public class GatewayForwarding{
 				sw.write(packetOut);
 				installGatewayRules(gatewayAttachPoint.getNodeId(),ethernet);
 			}
-		}else if ((!subnet.contains(ip.getSourceAddress())) && ip.getDestinationAddress().equals(globalIp)){
+		}else if ((!nwp.getIPv4Subnet().contains(ip.getSourceAddress())) && ip.getDestinationAddress().equals(nwp.getGlobalIPv4())){
 			if(sw.getId().equals(gatewayAttachPoint.getNodeId())){
 				if(!installReverseGatewayRules(ethernet,sw)){
 					return Command.STOP;
@@ -158,7 +148,7 @@ public class GatewayForwarding{
 				if(inetAddr == null) return Command.STOP;
 				IPv4Address destinationIP = IPv4Address.of((Inet4Address)inetAddr);
 				MacAddress destinationMac = hostMap.getMappedMac(newPort.getPort());
-				ethernet.setSourceMACAddress(gatewayMac);
+				ethernet.setSourceMACAddress(nwp.getGatewayMac());
 				ethernet.setDestinationMACAddress(destinationMac);
 				ip.setDestinationAddress(destinationIP);
 				if(ip.getProtocol().equals(IpProtocol.UDP)){
@@ -235,16 +225,16 @@ public class GatewayForwarding{
 		hostMap.addMapping(newPort,ethernet.getSourceMACAddress(),ip.getSourceAddress().toInetAddress(),port.getPort());
 		ArrayList<OFAction> actionList = new ArrayList<>();
 		OFOxms oxms = sw.getOFFactory().oxms();
-		OFAction destMacAction = sw.getOFFactory().actions().buildSetField().setField(oxms.ethDst(globalGatewayMac)).build();
+		OFAction destMacAction = sw.getOFFactory().actions().buildSetField().setField(oxms.ethDst(nwp.getGlobalGatewayMac())).build();
 		OFAction portChangeAction = null;
 		if(ip.getProtocol().equals(IpProtocol.TCP)){
 			portChangeAction = sw.getOFFactory().actions().buildSetField().setField(oxms.tcpSrc(TransportPort.of(newPort))).build();
 		}else if(ip.getProtocol().equals(IpProtocol.UDP)){
 			portChangeAction = sw.getOFFactory().actions().buildSetField().setField(oxms.udpSrc(TransportPort.of(newPort))).build();
 		}
-		OFAction ipChangeAction = sw.getOFFactory().actions().buildSetField().setField(oxms.ipv4Src(globalIp)).build();
+		OFAction ipChangeAction = sw.getOFFactory().actions().buildSetField().setField(oxms.ipv4Src(nwp.getGlobalIPv4())).build();
 		OFAction outputAction = sw.getOFFactory().actions().buildOutput().setPort(gatewayAttachPoint.getPortId()).build();
-		OFAction srcMacAction = sw.getOFFactory().actions().buildSetField().setField(oxms.ethSrc(gatewayMac)).build();
+		OFAction srcMacAction = sw.getOFFactory().actions().buildSetField().setField(oxms.ethSrc(nwp.getGatewayMac())).build();
 		actionList.add(destMacAction);
 		actionList.add(srcMacAction);
 		actionList.add(ipChangeAction);
@@ -272,7 +262,6 @@ public class GatewayForwarding{
 				setExact(MatchField.ETH_DST,ethernet.getDestinationMACAddress()).build();
 		}else if(ip.getProtocol().equals(IpProtocol.TCP)){
 			TCP tcp = (TCP) ip.getPayload();
-			port = tcp.getSourcePort();
 			match = sw.getOFFactory().buildMatch().setExact(MatchField.ETH_TYPE,EthType.IPv4).
 				setExact(MatchField.IPV4_SRC,ip.getSourceAddress()).
 				setExact(MatchField.IPV4_DST,ip.getDestinationAddress()).
@@ -288,15 +277,15 @@ public class GatewayForwarding{
 		hostMap.addMapping(newPort,ethernet.getSourceMACAddress(),ip.getSourceAddress().toInetAddress(),port.getPort());
 		ArrayList<OFAction> actionList = new ArrayList<>();
 		OFOxms oxms = sw.getOFFactory().oxms();
-		OFAction destMacAction = sw.getOFFactory().actions().buildSetField().setField(oxms.ethDst(globalGatewayMac)).build();
+		OFAction destMacAction = sw.getOFFactory().actions().buildSetField().setField(oxms.ethDst(nwp.getGlobalGatewayMac())).build();
 		OFAction portChangeAction = null;
 		if(ip.getProtocol().equals(IpProtocol.TCP)){
 			portChangeAction = sw.getOFFactory().actions().buildSetField().setField(oxms.tcpSrc(TransportPort.of(newPort))).build();
 		}else if(ip.getProtocol().equals(IpProtocol.UDP)){
 			portChangeAction = sw.getOFFactory().actions().buildSetField().setField(oxms.udpSrc(TransportPort.of(newPort))).build();
 		}
-		OFAction ipChangeAction = sw.getOFFactory().actions().buildSetField().setField(oxms.ipv4Src(globalIp)).build();
-		OFAction srcMacAction = sw.getOFFactory().actions().buildSetField().setField(oxms.ethSrc(gatewayMac)).build();
+		OFAction ipChangeAction = sw.getOFFactory().actions().buildSetField().setField(oxms.ipv4Src(nwp.getGlobalIPv4())).build();
+		OFAction srcMacAction = sw.getOFFactory().actions().buildSetField().setField(oxms.ethSrc(nwp.getGatewayMac())).build();
 		OFAction outputAction = sw.getOFFactory().actions().buildOutput().setPort(gatewayAttachPoint.getPortId()).build();
 		actionList.add(srcMacAction);
 		actionList.add(destMacAction);
@@ -339,7 +328,7 @@ public class GatewayForwarding{
 			return false;
 		}
 		MacAddress destinationMac = hostMap.getMappedMac(destPort.getPort());
-		MacAddress srcMac = gatewayMac;
+		MacAddress srcMac = nwp.getGatewayMac();
 		InetAddress inetAddr = hostMap.getMappedIP(destPort.getPort());
 		if(inetAddr == null) return false;
 		IPv4Address destinationIP = IPv4Address.of((Inet4Address)inetAddr);

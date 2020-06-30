@@ -10,9 +10,6 @@ import org.projectfloodlight.openflow.protocol.OFVersion;
 import org.projectfloodlight.openflow.protocol.match.MatchField;
 import org.projectfloodlight.openflow.types.DatapathId;
 import org.projectfloodlight.openflow.types.EthType;
-import org.projectfloodlight.openflow.types.IPv4Address;
-import org.projectfloodlight.openflow.types.IPv4AddressWithMask;
-import org.projectfloodlight.openflow.types.MacAddress;
 import org.projectfloodlight.openflow.types.OFPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,13 +32,8 @@ public class NAT implements IFloodlightModule, IOFMessageListener{
 
 	protected IFloodlightProviderService floodlightProviderService;
 	private NodePortTuple gatewayAttachPoint;
-	private IPv4Address   globalIP;
-	private IPv4AddressWithMask subnet;
 	private ARPProxy proxy;
 	private GatewayForwarding forwarding;
-	private IPv4Address gatewayIP;
-	private MacAddress gatewayMac ;
-	private MacAddress globalGatewayMac;
 	private IRoutingService routingService;
 	private IOFSwitchService switchService;
 	private NetworkProperty nwp;
@@ -67,13 +59,14 @@ public class NAT implements IFloodlightModule, IOFMessageListener{
 		try{
 			nwp = NetworkProperty.of("~/.config/NetworkProperty.properties");
 		}catch(Exception e){
-			throw e;
+			e.printStackTrace();
+			throw new FloodlightModuleException("Exception in property file");
 		}
 		floodlightProviderService = context.getServiceImpl(IFloodlightProviderService.class);
-		gatewayAttachPoint = new NodePortTuple(DatapathId.of(MacAddress.of("3c:95:09:20:a1:67")),OFPort.of(1));
+		gatewayAttachPoint = new NodePortTuple(DatapathId.of(nwp.getGatewayMac()),OFPort.of(1));
 		switchService = context.getServiceImpl(IOFSwitchService.class);
 		proxy = new ARPProxy(nwp);
-		forwarding = new GatewayForwarding(nwp,log);
+		forwarding = new GatewayForwarding(nwp,gatewayAttachPoint,routingService,switchService,log);
 	}
 
 	@Override
