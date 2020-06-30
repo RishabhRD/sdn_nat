@@ -44,6 +44,7 @@ public class NAT implements IFloodlightModule, IOFMessageListener{
 	private MacAddress globalGatewayMac;
 	private IRoutingService routingService;
 	private IOFSwitchService switchService;
+	private NetworkProperty nwp;
 	protected static Logger log = LoggerFactory.getLogger(NAT.class);
 
 	@Override
@@ -63,17 +64,16 @@ public class NAT implements IFloodlightModule, IOFMessageListener{
 
 	@Override
 	public void init(FloodlightModuleContext context) throws FloodlightModuleException {
+		try{
+			nwp = NetworkProperty.of("~/.config/NetworkProperty.properties");
+		}catch(Exception e){
+			throw e;
+		}
 		floodlightProviderService = context.getServiceImpl(IFloodlightProviderService.class);
 		gatewayAttachPoint = new NodePortTuple(DatapathId.of(MacAddress.of("3c:95:09:20:a1:67")),OFPort.of(1));
-		gatewayIP = IPv4Address.of("10.0.0.1");
-		subnet = IPv4AddressWithMask.of("10.0.0.0/24");
-		globalIP = IPv4Address.of("192.168.43.106");
-		globalGatewayMac = MacAddress.of("c8:3d:dc:e6:97:7a");
-		gatewayMac = MacAddress.of("3c:95:09:20:a1:67");
-		routingService = context.getServiceImpl(IRoutingService.class);
 		switchService = context.getServiceImpl(IOFSwitchService.class);
-		proxy = new ARPProxy(gatewayMac,gatewayIP);
-		forwarding = new GatewayForwarding(gatewayMac,globalGatewayMac,globalIP,subnet,gatewayAttachPoint,routingService,switchService,log);
+		proxy = new ARPProxy(nwp);
+		forwarding = new GatewayForwarding(nwp,log);
 	}
 
 	@Override

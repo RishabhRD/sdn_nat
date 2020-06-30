@@ -65,7 +65,7 @@ public class NetworkProperty{
 	public void setGlobalGatewayMac(MacAddress globalGatewayMac) {
 		this.globalGatewayMac = globalGatewayMac;
 	}
-	public static NetworkProperty  from(String fileName) throws FileNotFoundException,IOException{
+	public static NetworkProperty  of(String fileName) throws FileNotFoundException,IOException{
 		FileInputStream fis = null;
 		Properties prop = null;
 		fis = new FileInputStream(fileName);
