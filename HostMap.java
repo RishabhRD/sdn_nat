@@ -1,8 +1,8 @@
 package net.floodlightcontroller.sdn_nat;
 
+import java.net.InetAddress;
 import java.util.HashMap;
 
-import org.projectfloodlight.openflow.types.IPv4Address;
 import org.projectfloodlight.openflow.types.MacAddress;
 
 public class HostMap{
@@ -12,7 +12,7 @@ public class HostMap{
 		map = new HashMap<>();
 	}
 
-	public void addMapping(Integer port,MacAddress addr,IPv4Address ip,Integer transportPort){
+	public void addMapping(Integer port,MacAddress addr,InetAddress ip,Integer transportPort){
 		HostApplicationId id = new HostApplicationId(ip,addr,transportPort);
 		map.put(port,id);
 	}
@@ -21,7 +21,7 @@ public class HostMap{
 		map.remove(port);
 	}
 
-	public boolean updateMapping(Integer port,IPv4Address ip,Integer transportPort){
+	public boolean updateMapping(Integer port,InetAddress ip,Integer transportPort){
 		if(!map.containsKey(port)) return false;
 		HostApplicationId id = map.get(port);
 		id.setPort(transportPort);
@@ -34,7 +34,7 @@ public class HostMap{
 		return map.get(port).getPort();
 	}
 
-	public IPv4Address getMappedIP(Integer port){
+	public InetAddress getMappedIP(Integer port){
 		if(!map.containsKey(port)) return null;
 		return map.get(port).getIP();
 	}

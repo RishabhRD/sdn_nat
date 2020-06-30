@@ -1,5 +1,7 @@
 package net.floodlightcontroller.sdn_nat;
 
+import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.util.ArrayList;
 
 import org.projectfloodlight.openflow.protocol.OFFlowAdd;
@@ -150,7 +152,9 @@ public class GatewayForwarding{
 				}
 				Integer actualPort = hostMap.getMappedPort(newPort.getPort());
 				if(actualPort == null) return Command.STOP;
-				IPv4Address destinationIP = hostMap.getMappedIP(newPort.getPort());
+				InetAddress inetAddr = hostMap.getMappedIP(newPort.getPort());
+				if(inetAddr == null) return Command.STOP;
+				IPv4Address destinationIP = IPv4Address.of((Inet4Address)inetAddr);
 				MacAddress destinationMac = hostMap.getMappedMac(newPort.getPort());
 				ethernet.setSourceMACAddress(gatewayMac);
 				ethernet.setDestinationMACAddress(destinationMac);
@@ -226,7 +230,7 @@ public class GatewayForwarding{
 		}
 		Integer newPort = portPool.getPortFromPool();
 		if(newPort == null) return false;
-		hostMap.addMapping(newPort,ethernet.getSourceMACAddress(),ip.getSourceAddress(),port.getPort());
+		hostMap.addMapping(newPort,ethernet.getSourceMACAddress(),ip.getSourceAddress().toInetAddress(),port.getPort());
 		ArrayList<OFAction> actionList = new ArrayList<>();
 		OFOxms oxms = sw.getOFFactory().oxms();
 		OFAction destMacAction = sw.getOFFactory().actions().buildSetField().setField(oxms.ethDst(globalGatewayMac)).build();
@@ -279,7 +283,7 @@ public class GatewayForwarding{
 			return false;
 		}
 		if(newPort == null) return false;
-		hostMap.addMapping(newPort,ethernet.getSourceMACAddress(),ip.getSourceAddress(),port.getPort());
+		hostMap.addMapping(newPort,ethernet.getSourceMACAddress(),ip.getSourceAddress().toInetAddress(),port.getPort());
 		ArrayList<OFAction> actionList = new ArrayList<>();
 		OFOxms oxms = sw.getOFFactory().oxms();
 		OFAction destMacAction = sw.getOFFactory().actions().buildSetField().setField(oxms.ethDst(globalGatewayMac)).build();
@@ -334,7 +338,9 @@ public class GatewayForwarding{
 		}
 		MacAddress destinationMac = hostMap.getMappedMac(destPort.getPort());
 		MacAddress srcMac = gatewayMac;
-		IPv4Address destinationIP = hostMap.getMappedIP(destPort.getPort());
+		InetAddress inetAddr = hostMap.getMappedIP(destPort.getPort());
+		if(inetAddr == null) return false;
+		IPv4Address destinationIP = IPv4Address.of((Inet4Address)inetAddr);
 		OFPort destinationPort = locationMap.getLocation(sw.getId(),destinationIP);
 		Integer destinationTransportPort = hostMap.getMappedPort(destPort.getPort());
 		if(destinationTransportPort == null){
