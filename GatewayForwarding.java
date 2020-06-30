@@ -46,6 +46,8 @@ public class GatewayForwarding{
 	private HostLocationMap locationMap;
 	private Logger log;
 
+	private int DEFAULT_TABLE_ID = 0;
+	private int DEFAULT_IDLE_TIMEOUT = 120;
 	public static final int APP_ID = 5;
 	public static final int APP_ID_BITS = 13;
 	public static final int APP_ID_SHIFT = 64 - APP_ID_BITS;
@@ -119,7 +121,7 @@ public class GatewayForwarding{
 					ArrayList<OFAction> actions = new ArrayList<>();
 					OFAction outputAction = currentSwitch.getOFFactory().actions().buildOutput().setPort(tuple.getPortId()).build();
 					actions.add(outputAction);
-					OFFlowAdd flowAdd  = currentSwitch.getOFFactory().buildFlowAdd().setCookie(U64.of(COOKIE)).setMatch(match).setActions(actions).setPriority(30).setIdleTimeout(120).setTableId(TableId.of(0)).build();
+					OFFlowAdd flowAdd  = currentSwitch.getOFFactory().buildFlowAdd().setCookie(U64.of(COOKIE)).setMatch(match).setActions(actions).setPriority(30).setIdleTimeout(DEFAULT_IDLE_TIMEOUT).setTableId(TableId.of(DEFAULT_TABLE_ID)).build();
 					currentSwitch.write(flowAdd);
 				}
 				NodePortTuple tuple = path.getPath().get(0);
@@ -180,7 +182,7 @@ public class GatewayForwarding{
 				OFFlowAdd flowAdd = sw.getOFFactory().buildFlowAdd().setCookie(U64.of(COOKIE)).setTableId(TableId.of(1))
 					.setMatch(match)
 					.setPriority(30)
-					.setIdleTimeout(120)
+					.setIdleTimeout(DEFAULT_IDLE_TIMEOUT)
 					.setActions(actionList)
 					.build();
 				sw.write(flowAdd);
@@ -242,7 +244,7 @@ public class GatewayForwarding{
 		actionList.add(ipChangeAction);
 		actionList.add(portChangeAction);
 		actionList.add(outputAction);
-		OFFlowAdd flowAdd = sw.getOFFactory().buildFlowAdd().setCookie(U64.of(COOKIE)).setMatch(match).setPriority(30).setIdleTimeout(120).setTableId(TableId.of(0)).setActions(actionList).build();
+		OFFlowAdd flowAdd = sw.getOFFactory().buildFlowAdd().setCookie(U64.of(COOKIE)).setMatch(match).setPriority(30).setIdleTimeout(DEFAULT_IDLE_TIMEOUT).setTableId(TableId.of(DEFAULT_TABLE_ID)).setActions(actionList).build();
 		sw.write(flowAdd);
 		return true;
 	}
@@ -295,7 +297,7 @@ public class GatewayForwarding{
 		actionList.add(ipChangeAction);
 		actionList.add(portChangeAction);
 		actionList.add(outputAction);
-		OFFlowAdd flowAdd = sw.getOFFactory().buildFlowAdd().setCookie(U64.of(COOKIE)).setMatch(match).setPriority(30).setIdleTimeout(120).setTableId(TableId.of(0)).setActions(actionList).build();
+		OFFlowAdd flowAdd = sw.getOFFactory().buildFlowAdd().setCookie(U64.of(COOKIE)).setMatch(match).setPriority(30).setIdleTimeout(DEFAULT_IDLE_TIMEOUT).setTableId(TableId.of(DEFAULT_TABLE_ID)).setActions(actionList).build();
 		sw.write(flowAdd);
 		return true;
 	}
@@ -356,8 +358,8 @@ public class GatewayForwarding{
 		actionList.add(portChangeAction);
 		actionList.add(outputAction);
 		OFFlowAdd flowAdd = sw.getOFFactory().buildFlowAdd().setCookie(U64.of(COOKIE))
-			.setTableId(TableId.of(0))
-			.setIdleTimeout(120)
+			.setTableId(TableId.of(DEFAULT_TABLE_ID))
+			.setIdleTimeout(DEFAULT_IDLE_TIMEOUT)
 			.setActions(actionList)
 			.setMatch(match)
 			.build();
