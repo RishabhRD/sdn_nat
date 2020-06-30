@@ -14,6 +14,7 @@ import org.projectfloodlight.openflow.types.DatapathId;
 import org.projectfloodlight.openflow.types.EthType;
 import org.projectfloodlight.openflow.types.IPv4Address;
 import org.projectfloodlight.openflow.types.IPv4AddressWithMask;
+import org.projectfloodlight.openflow.types.IPv6Address;
 import org.projectfloodlight.openflow.types.IpProtocol;
 import org.projectfloodlight.openflow.types.MacAddress;
 import org.projectfloodlight.openflow.types.OFBufferId;
@@ -42,7 +43,8 @@ public class GatewayForwarding{
 	private IPv4AddressWithMask subnet;
 	private MacAddress gatewayMac;
 	private MacAddress globalGatewayMac;
-	private IPv4Address globalIp;
+	private IPv4Address globalIpv4;
+	private IPv6Address globalIpv6;
 	private TransportLayerPortPool portPool;
 	private IOFSwitchService switchService;
 	private HostLocationMap locationMap;
@@ -55,9 +57,9 @@ public class GatewayForwarding{
 	public static final int APP_ID_SHIFT = 64 - APP_ID_BITS;
 	public static final long COOKIE = (long) (APP_ID & ((1 << APP_ID_BITS) - 1)) << APP_ID_SHIFT;
 
-	public GatewayForwarding(MacAddress gatewayMac, MacAddress globalGatewayMac,IPv4Address globalIp,IPv4AddressWithMask subnet,NodePortTuple gatewayAttachPoint,IRoutingService routingService,IOFSwitchService switchService,Logger log) {
-		this.globalIp = globalIp;
-//		this.gatewayMac = gatewayMac;
+	public GatewayForwarding(MacAddress gatewayMac, MacAddress globalGatewayMac,IPv4Address globalIpv4,IPv4AddressWithMask subnet,IPv6Address globalIpv6,NodePortTuple gatewayAttachPoint,IRoutingService routingService,IOFSwitchService switchService,Logger log) {
+		this.globalIpv4 = globalIpv4;
+		this.globalIpv6 = globalIpv6;
 		this.subnet = subnet;
 		this.gatewayAttachPoint = gatewayAttachPoint;
 		this.routingService = routingService;
